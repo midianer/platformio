@@ -1,0 +1,11 @@
+s2-mini as debugger
+
+
+https://medium.com/@mjyai/debugging-esp32-using-2-s2-mini-via-jtag-5e9fccc1ff5b
+
+https://github.com/wuxx/ESPLink/tree/master/firmware/v1.2
+
+https://registry.platformio.org/libraries/ottowinter/ESPAsyncWebServer-esphome#common-variables
+
+
+https://github.com/wokwi/esp32-async-web-server-example/blob/main/src/simple_server.ino
