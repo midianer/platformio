@@ -9,6 +9,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 	<button type="button" id="B1" onclick="sendData(1)">LED ON</button>
 	<button type="button" id="B2" onclick="sendData(0)">LED OFF</button><BR>
 	<button type="button" id="ID_DOWN" onclick="func_down()">Down</button>
+	<button type="button" id="ID_UP" onclick="func_up()">Up</button>
 	<button type="button" id="ID_DOWN_S" >Down</button><BR>
 </div>
 
@@ -21,11 +22,28 @@ function func_down() {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("ID_DOWN").innerHTML =
-      this.responseText;
+      //document.getElementById("ID_DOWN").innerHTML =
+      //this.responseText;
     }
   };
   xhttp.open("GET", "Down", true);
+  xhttp.send();
+  setIntervalX(function () {
+    getData();
+    getButton();
+  }, 1000, 15);
+}
+
+
+function func_up() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("ID_UP").innerHTML =
+      this.responseText;
+    }
+  };
+  xhttp.open("GET", "Up", true);
   xhttp.send();
 }
 
@@ -43,11 +61,30 @@ function sendData(led) {
   xhttp.send();
 }
 
-setInterval(function() {
-  // Call a function repetatively with 2 Second interval
-  getData();
-  getButton();
-}, 2000);
+//setInterval(function() {
+//  // Call a function repetatively with 2 Second interval
+//  getData();
+//  getButton();
+//}, 2000);
+
+
+function setIntervalX(callback, delay, repetitions) {
+    var x = 0;
+    var intervalID = window.setInterval(function () {
+
+       callback();
+
+       if (++x === repetitions) {
+           window.clearInterval(intervalID);
+       }
+    }, delay);
+}
+
+// This will be repeated 5 times with 1 second intervals:
+//setIntervalX(function () {
+//  getData();
+//  getButton();
+//}, 1000, 15);
 
 function getData() {
   var xhttp = new XMLHttpRequest();

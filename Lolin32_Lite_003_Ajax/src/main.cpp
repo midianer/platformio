@@ -8,7 +8,7 @@
 
 #include "index.h" //Our HTML webpage contents with javascripts
 
-#define LED 2  //On board LED
+#define LED 22  //On board LED
 
 //SSID and Password of your WiFi router
 //const char* ssid = "circuits4you.com";
@@ -70,6 +70,13 @@ void handleDownState(AsyncWebServerRequest *request) {
   request->send(200, "text/plane", sig_down_s);
 }
 
+void handleUp(AsyncWebServerRequest *request) {
+  Serial.println("Up Pressed");
+  sig_down = 10;
+  String sig_down_s = String(sig_down);
+  request->send(200, "text/plane", "Up Pressed");
+}
+
 
 
 //==============================================================
@@ -105,6 +112,7 @@ void setup(void){
   server.on("/readADC", handleADC);
   server.on("/Down", handleDown);
   server.on("/DownState", handleDownState);
+  server.on("/Up", handleUp);
   
 
   server.begin();                  //Start server
@@ -123,8 +131,11 @@ void loop(void){
     Serial.println(lastDebounceTime);
     Serial.println(sig_down);
     if (sig_down > 0) {
+      digitalWrite(LED,LOW); //LED ON
       sig_down--;
-    }
+    } else {
+      digitalWrite(LED,HIGH); //LED OFF
+	}
   }
 //  server.handleClient();          //Handle client requests
 }
