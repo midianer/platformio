@@ -12,7 +12,7 @@
 
 #include "index.h" //Our HTML webpage contents with javascripts
 
-#define LED 22  //On board LED
+#define LED 2  //On board LED ESP12E
 
 //SSID and Password of your WiFi router
 //const char* ssid = "circuits4you.com";
@@ -88,7 +88,7 @@ void handleUp(AsyncWebServerRequest *request) {
 //==============================================================
 void setup(void){
   Serial.begin(115200);
-  Serial.println("button_ajax");
+  Serial.println("EspE8266_001_Ajax");
   
   // Connect to Wi-Fi
   WiFi.config(local_IP, subnet, gateway);
@@ -130,15 +130,17 @@ unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 1000;    // the debounce time; increase if the output flickers
 void loop(void){
   if ((millis() - lastDebounceTime) > debounceDelay) {
-	lastDebounceTime = millis();
+	  lastDebounceTime = millis();
     currentTime += 1000;
     Serial.println(lastDebounceTime);
     Serial.println(sig_down);
     if (sig_down > 0) {
       digitalWrite(LED,LOW); //LED ON
+      Serial.println("LED ON");
       sig_down--;
     } else {
       digitalWrite(LED,HIGH); //LED OFF
+      Serial.println("LED OFF");
 	}
   }
 //  server.handleClient();          //Handle client requests

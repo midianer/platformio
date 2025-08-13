@@ -45,6 +45,10 @@ function func_up() {
   };
   xhttp.open("GET", "Up", true);
   xhttp.send();
+  setIntervalX(function () {
+    getData();
+    getButton();
+  }, 1000, 15);
 }
 
 
