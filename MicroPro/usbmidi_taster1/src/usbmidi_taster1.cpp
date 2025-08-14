@@ -11,36 +11,64 @@ using namespace std;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#define noOfButtons 2     //Exactly what it says; must be the same as the number of elements in buttonPins
+#define bounceDelay 50    //Minimum delay before regarding a button as being pressed and debounced
+#define minButtonPress 1  //Number of times the button has to be detected as pressed before the press is considered to be valid
+
+#define DebugSerial 2
+
 void doStuff(uint8_t buttonNumber);
 void debounce();
 void noteOn(byte channel, byte pitch, byte velocity);
 void noteOff(byte channel, byte pitch, byte velocity);
 void controlChange(byte channel, byte control, byte value);
 void loop_debounce();
+void loop_CLdebounce();
 void loop4();
 
-class MyClass {       // The class
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class ClDebounce {       // The class
   public:             // Access specifier
-    MyClass(int pin);
+    ClDebounce(int pin, int ledno, int button);
     int myNum;        // Attribute (int variable)
     String myString;  // Attribute (string variable)
     void myFunction(int blinkRate);
   private:
     int _pin;
+    int _ledno;
+    uint32_t _previousMillis;
+    uint32_t _currentMillis;
+    uint32_t _pressCount;
+    uint8_t _button;
 };
-MyClass::MyClass(int pin) {
+ClDebounce::ClDebounce(int pin, int ledno, int button) {
 	pinMode(pin, INPUT);
 	_pin = pin;
+	_ledno = ledno;
+    _button = button;
 }
-void MyClass::myFunction(int blinkRate){
-digitalWrite(_pin, HIGH);
-delay(blinkRate);
-digitalWrite(_pin, LOW);
-delay(blinkRate);
+void ClDebounce::myFunction(int blinkRate){
+    _currentMillis = millis();
+    digitalWrite(_ledno, digitalRead(_pin));
+    if (digitalRead(_pin)==LOW) {             //Input is high, button not pressed or in the middle of bouncing and happens to be high
+        _previousMillis = _currentMillis;        //Set previousMillis to millis to reset timeout
+        _pressCount = 0;                        //Set the number of times the button has been detected as pressed to 0
+    } else {
+      if ((_currentMillis - _previousMillis) > bounceDelay) {
+        _previousMillis = _currentMillis;        //Set previousMillis to millis to reset timeout
+        if (_pressCount < 10) {
+            ++_pressCount;
+        }
+        if (_pressCount == minButtonPress) {
+          doStuff(_button);                             //Button has been debounced. Call function to do whatever you want done.
+        }
+      }
+    }
 }
 
-//MyClass redLED(LED_BUILTIN_RX);
-//MyClass greenLED(LED_BUILTIN_TX);
+ClDebounce redLED(4, LED_BUILTIN_RX, 0);
+ClDebounce greenLED(5, LED_BUILTIN_TX, 1);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -49,11 +77,6 @@ delay(blinkRate);
 // micro111.build.pid=0x1F01
 // micro111.build.usb_product="ArduinoTaster1"
 
-#define noOfButtons 2     //Exactly what it says; must be the same as the number of elements in buttonPins
-#define bounceDelay 50    //Minimum delay before regarding a button as being pressed and debounced
-#define minButtonPress 1  //Number of times the button has to be detected as pressed before the press is considered to be valid
-
-#define DebugSerial 0
 //const int buttonPins[] = {3, 2};      // Input pins to use, connect buttons between these pins and 0V
 const int buttonPins[] = {4, 5};      // Input pins to use, connect buttons between these pins and 0V
 uint32_t previousMillis[noOfButtons];       // Timers to time out bounce duration for each button
@@ -113,7 +136,8 @@ void setup() {
 }
 
 void loop() {
-	loop_debounce();
+	//loop_debounce();
+	loop_CLdebounce();
 }
 
 void loopx() {
@@ -171,10 +195,13 @@ void controlChange(byte channel, byte control, byte value) {
   MidiUSB.flush();
 }
 
+void loop_CLdebounce() {
+  greenLED.myFunction(2000);
+  redLED.myFunction(1000);
+}
+
 void loop_debounce() {
   debounce();
-//  greenLED.myFunction(2000);
-//  redLED.myFunction(1000);
   //delay(10);     //Your other code goes here instead of this delay. DO NOT leave this delay here, it's ONLY for demonstration.
 }
 
