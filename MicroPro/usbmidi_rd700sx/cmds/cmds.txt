@@ -1,0 +1,4 @@
+meld ~/PlatformIO/MicroPro/usbmidi_taster1/boards/local_sparkfun_promicro16.json ~/.platformio/platforms/atmelavr/boards/sparkfun_promicro16.json
+
+cd /home/guenter/PlatformIO/MicroPro/usbmidi_taster1
+

@@ -1,0 +1,29 @@
+stty 115200 hup < /dev/ttyUSB1
+sudo stty -F /dev/ttyUSB0 -hupcl
+sudo stty -F /dev/ttyUSB0 hupcl
+esptool.py --chip esp8266 --port /dev/ttyUSB1 write_flash 0x000000 ~/PlatformIO/EspE8266_001_Ajax/.pio/build/esp12e/firmware.elf
+
+esptool.py --chip esp8266 --port /dev/ttyUSB1 --baud 115200 write_flash 0x000000 ~/PlatformIO/EspE8266_001_Ajax/.pio/build/esp12e/firmware.elf
+
+
+sudo mv ./99-espressif.rules  /etc/udev/rules.d/99-espressif.rules
+
+
+ 4677  udevadm info --attribute-walk --name=/dev/ttyUSB0
+ 4678  ls /etc/udev/rules.d 
+ 4679  sudo nano  /etc/udev/rules.d/99-espressif.rules
+ 4680* cat dm control --reload-rules
+ 4681  sudo dmesg | grep -ii ESP
+ 4682  sudo nano  /etc/udev/rules.d/99-SaleaeLogic.rules 
+ 4683  cat  /etc/udev/rules.d/99-SaleaeLogic.rules 
+ 4684  sudo nano  /etc/udev/rules.d/99-espressif.rules
+ 4685  sudo dmesg | grep -ii Esp
+ 4686  cat   /etc/udev/rules.d/99-SaleaeLogic.rules 
+ 4687  cat  /etc/udev/rules.d/99-espressif.rules 
+ 4688  mv  /etc/udev/rules.d/99-espressif.rules  .
+ 4689  sudo mv  /etc/udev/rules.d/99-espressif.rules  .
+ 4690  ls
+ 4691  sudo udevadm trigger
+ 4692  sudo udevadm control --reload-rules
+
+ 
