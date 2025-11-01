@@ -1,0 +1,7 @@
+stty 115200 hup < /dev/ttyUSB1
+sudo stty -F /dev/ttyUSB0 -hupcl
+sudo stty -F /dev/ttyUSB0 hupcl
+esptool.py --chip esp8266 --port /dev/ttyUSB1 write_flash 0x000000 ~/PlatformIO/EspE8266_001_Ajax/.pio/build/esp12e/firmware.elf
+
+esptool.py --chip esp8266 --port /dev/ttyUSB1 --baud 115200 write_flash 0x000000 ~/PlatformIO/EspE8266_001_Ajax/.pio/build/esp12e/firmware.elf
+
