@@ -8,7 +8,10 @@
 
 #include "index.h" //Our HTML webpage contents with javascripts
 
-#define PWM_Pin2 4
+#define PWM_Pin2 2
+#define PWM_Pin4 4
+#define PWM_Pin6 6
+#define PWM_Pin8 8
 #define LED 15  //On board LED S2 Mini
 
 //SSID and Password of your WiFi router
@@ -120,13 +123,15 @@ void setup(void){
   server.on("/Up", handleUp);
   
   ledcSetup(pwmChannel, freq, resolution);
-  ledcAttachPin(PWM_Pin2, pwmChannel);
+  ledcAttachPin(PWM_Pin4, pwmChannel);
   analogWriteResolution(resolution);
   ledcWrite(pwmChannel, 100);
   Serial.println("PWM setup");
   analogWriteResolution(8);
   analogWriteFrequency(3000);
-  analogWrite(2, 180);
+  analogWrite(PWM_Pin2, 180);
+  analogWrite(PWM_Pin6, 80);
+  analogWrite(PWM_Pin8, 50);
 
   server.begin();                  //Start server
   Serial.println("HTTP server started");

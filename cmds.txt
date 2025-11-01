@@ -9,3 +9,29 @@ https://registry.platformio.org/libraries/ottowinter/ESPAsyncWebServer-esphome#c
 
 
 https://github.com/wokwi/esp32-async-web-server-example/blob/main/src/simple_server.ino
+
+
+git init
+git remote add origin git@github.com:midianer/platformio
+touch README.md
+git add README.md
+git add -A
+git add -u
+git commit -m"initial commit"
+git remote -vv
+git push -u origin master 
+git status 
+
+guenter@guenter-B550M-DS3H:/media/hdd3/Piezolution/Platformio$ 
+guenter@guenter-B550M-DS3H:/media/hdd3/Piezolution/Platformio$ git remote -vv
+origin	git@github.com:midianer/platformio_lensation.git (fetch)
+origin	git@github.com:midianer/platformio_lensation.git (push)
+guenter@guenter-B550M-DS3H:/media/hdd3/Piezolution/Platformio$ git branch
+* master
+guenter@guenter-B550M-DS3H:/media/hdd3/Piezolution/Platformio$ 
+
+
+
+git clone git@github.com:midianer/impuls7.git --branch project/wsp1.10.1_impuls7_fkm
+git pull origin project/wsp1.10.1_impuls7_fkm
+  
