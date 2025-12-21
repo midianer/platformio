@@ -26,4 +26,10 @@ sudo mv ./99-espressif.rules  /etc/udev/rules.d/99-espressif.rules
  4691  sudo udevadm trigger
  4692  sudo udevadm control --reload-rules
 
- 
+
+
+sudo apt install platformio
+platformio run --target upload --environment lolin32 --u
+
+
+
