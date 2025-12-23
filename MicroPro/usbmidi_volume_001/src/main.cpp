@@ -1,11 +1,12 @@
+#include <Arduino.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-//#include <LCD.h>
+#include <MIDIUSB.h>
 
-/************************
-**    NodeMCU_I2C      **
-**    V1.0             **
-************************/
+/*******************************
+**    usbmidi_volume_001      **
+**    V1.0                    **
+*******************************/
 
 #define I2C_ADDR    0x27 // Define I2C Address where the PCF8574A is
 #define BACKLIGHT_PIN     3
@@ -57,6 +58,8 @@ byte frownie[8] = {
   0b10001
 };
 
+void controlChange(byte channel, byte control, byte value);
+
 
 void setup() {
 
@@ -88,12 +91,23 @@ void setup() {
 
 }
 
-void loop1()
-{ // do nothing here 
+ int xk, xk1;
+
+void loop()
+{ 
+ int a = analogRead(A0);
+ xk = (a * 16 + 16 * 15 * xk) >> 8;
+ if(xk>>8 != xk1) {
+   controlChange(0, 0x7, xk & 0x7f);
+   MidiUSB.flush();
+ }
+ xk1 = xk>>8;
+ Serial.println(a);
+ //volumeChange(0, 0x7f);
 }
 
 
-void loop()
+void loop1()
 {
   // Do a little animation by writing to the same location
   lcd.setCursor ( 8, 1 );
@@ -105,6 +119,15 @@ void loop()
   lcd.setCursor ( 8, 1 );
   lcd.print ( char(1));
   delay (500);
+
+}
+
+void controlChange(byte channel, byte control, byte value) {
+
+  midiEventPacket_t event = {0x0B, (byte)(0xB0 | channel), control, value};
+
+  MidiUSB.sendMIDI(event);
+  MidiUSB.flush();
 }
 
 
