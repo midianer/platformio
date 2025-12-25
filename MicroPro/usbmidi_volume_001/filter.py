@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import pylab
 
 ##xk = 5
 ##a = 1
@@ -10,6 +12,10 @@ import numpy as np
 input = 1.0 * 256;
 output = 0.0;
 coeff = 0.20 * 256;
+res = [];
+amp = [];
+ak1 = [0,0,0];
+bk1 = [1,0,0];
 
 #// Neue Berechnung
 for i in range(1, 50):
@@ -56,6 +62,7 @@ print(l)
 #al10, be11, be12
 
 al00, be01, be02 = get_coeff(a1, b1, l)
+ak1[0], bk1[1], bk1[2] = get_coeff(a1, b1, l)
 al10, be11, be12 = get_coeff(a2, b2, l)
 print(al00, be01, be02)
 print(al10, be11, be12)
@@ -71,3 +78,49 @@ for i in range(1, 100):
     z0 = z1
     z1 = z2
     print(yn, z0, z1, z2)
+    print("{:4.4} {:4.4}".format(yn, z0))
+    res.append(yn)
+
+plt.plot(res)
+plt.ylabel('Einschwingen')
+plt.show()
+
+for f in np.arange(0.001, 0.5, 0.001):
+  sumacos = 0
+  sumasin = 0
+  sumbcos = 0
+  sumbsin = 0
+  for i in range(0,3):
+    sumacos += ak1[i] * np.cos(2 * np.pi * i * f) 
+    sumasin += ak1[i] * np.sin(2 * np.pi * i * f)
+    sumbcos += bk1[i] * np.cos(2 * np.pi * i * f) 
+    sumbsin += bk1[i] * np.sin(2 * np.pi * i * f)
+  #print(np.sqrt((sumacos*sumacos +sumasin*sumasin) / (sumbcos*sumbcos + sumbsin*sumbsin)))
+  #print(f)
+  amp.append(np.sqrt((sumacos*sumacos +sumasin*sumasin) / (sumbcos*sumbcos + sumbsin*sumbsin)))
+  #np.append(amp, np.sqrt((sumacos*sumacos +sumasin*sumasin) / (sumbcos*sumbcos + sumbsin*sumbsin)))
+  #amp.append(np.log10(np.sqrt((sumacos*sumacos +sumasin*sumasin) / (sumbcos*sumbcos + sumbsin*sumbsin))))
+
+
+npamp = np.array(amp);
+xx = np.arange(0.001, 0.5, 0.001)
+ff = np.arange(0.001, 0.5, 0.001)
+
+print(f.dtype)
+plt.plot(xx, amp)
+plt.xscale('log')
+plt.yscale('log')
+plt.grid(True)
+plt.xlabel('Fs/Fg')
+plt.ylabel('Amplification')
+
+
+fig, ax = plt.subplots()
+ax.set_xlabel('Fs/Fg')
+ax.set_ylabel('Ampl')
+ax.set_xscale("log")
+ax.set_yscale("log")
+ax.plot(ff, amp)
+ax.grid()
+
+plt.show()
