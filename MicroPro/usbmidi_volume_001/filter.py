@@ -85,7 +85,9 @@ plt.plot(res)
 plt.ylabel('Einschwingen')
 plt.show()
 
-for f in np.arange(0.001, 0.5, 0.001):
+step = 0.0001
+
+for f in np.arange(step, 0.5, step):
   sumacos = 0
   sumasin = 0
   sumbcos = 0
@@ -103,8 +105,8 @@ for f in np.arange(0.001, 0.5, 0.001):
 
 
 npamp = np.array(amp);
-xx = np.arange(0.001, 0.5, 0.001)
-ff = np.arange(0.001, 0.5, 0.001)
+xx = np.arange(step, 0.5, step)
+ff = np.arange(step, 0.5, step)
 
 print(f.dtype)
 plt.plot(xx, amp)
@@ -113,6 +115,8 @@ plt.yscale('log')
 plt.grid(True)
 plt.xlabel('Fs/Fg')
 plt.ylabel('Amplification')
+plt.xlim([step, 0.5])
+plt.ylim([0.0001, 1])
 
 
 fig, ax = plt.subplots()
@@ -121,6 +125,8 @@ ax.set_ylabel('Ampl')
 ax.set_xscale("log")
 ax.set_yscale("log")
 ax.plot(ff, amp)
+ax.set_xlim([step, 0.5])
+ax.set_ylim([0.0001, 1])
 ax.grid()
 
 plt.show()
