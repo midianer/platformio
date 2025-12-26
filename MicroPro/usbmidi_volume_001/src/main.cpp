@@ -28,8 +28,9 @@ LiquidCrystal_I2C  lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin
 
 unsigned long previousMillis = 0;  // will store last time LED was updated
 unsigned long currentMillis;
-const long interval = 200;  // interval at which to blink (milliseconds)
+const long interval = 5;  // interval at which to blink (milliseconds)
 volatile uint16_t adc_value = ADC; // Wert aus dem ADC-Register lesen
+volatile uint16_t a, aold;
 
 // Creat a set of new characters
 byte smiley[8] = {
@@ -102,17 +103,15 @@ void setup() {
   pinMode(D9, OUTPUT);
   digitalWrite(LED_BUILTIN_RX, LOW);
   digitalWrite(LED_BUILTIN_RX, HIGH);
-  //setupadc();
+  setupadc();
 }
 
  int xk, xk1;
- int a;
 
 
 void loop()
 { 
   digitalWrite(LED_BUILTIN_RX, HIGH);
-  //a = adc_value;
 //  xk = (a * 16 + 16 * 15 * xk) >> 8;
 //  if(xk>>8 != xk1) {
 //    controlChange(0, 0x7, xk & 0x7f);
@@ -121,16 +120,25 @@ void loop()
 //  xk1 = xk>>8;
   currentMillis = millis();
   if (currentMillis - previousMillis >= interval) {
-    digitalWrite(D8, LOW);
     // save the last time you blinked the LED
     //previousMillis = currentMillis;  //volumeChange(0, 0x7f);
-    previousMillis -= interval;  //volumeChange(0, 0x7f);
-    //ADCSRA |= (1 <<ADSC); // Optional: Neue Konvertierung starten
-    digitalWrite(D8, HIGH);
-    a = analogRead(A0);
-    controlChange(0, 0x7, a >> 3);
-    MidiUSB.flush();
-    //Serial.println(a);
+    previousMillis += interval;  //volumeChange(0, 0x7f);
+    a = adc_value >> 3;
+    ADCSRA |= (1 <<ADSC); // Optional: Neue Konvertierung starten
+    //a = analogRead(A0);
+    if (a != aold) {
+      digitalWrite(D8, LOW);
+      controlChange(0, 0x7, a);
+      digitalWrite(D8, HIGH);
+      aold=a;
+    }
+    //MidiUSB.flush();
+    Serial.println(ADMUX, HEX);
+    Serial.println(ADCSRA, HEX);
+    Serial.println(ADCSRB, HEX);
+    Serial.println(ADC, HEX);
+
+    
   }
   digitalWrite(LED_BUILTIN_RX, LOW);
 }
@@ -163,16 +171,24 @@ void controlChange(byte channel, byte control, byte value) {
 // ADC-Interrupt Service Routine
 ISR(ADC_vect) {
   digitalWrite(D9, LOW);
+  digitalWrite(D9, HIGH);
+  //adc_value = analogRead(A0);
   adc_value = ADC; // Wert aus dem ADC-Register lesen
+  digitalWrite(D9, adc_value>>2);
   // Hier Wert verarbeiten oder in eine Queue legen
+  digitalWrite(D9, LOW);
   digitalWrite(D9, HIGH);
 }
 
 void setupadc() {
   // ... ADC-Pins als Input konfigurieren
-  ADMUX = (1 <<REFS0); // Referenzspannung einstellen
-  ADCSRA = (1 <<ADEN) | (1 <<ADIE) | (1 <<ADPS2) | (1 <<ADPS1); // ADC aktivieren, Interrupt aktivieren, Prescaler setzen
+  ADCSRA = 0; // Clear ADCSRA
+  ADMUX = ((1 << MUX2) | (1 << MUX1) | (1 << MUX0) | (1 <<REFS0)); // Referenzspannung einstellen
+  ADCSRA |= ((1 <<ADEN) | (1 <<ADIE) | (1 <<ADPS2) | (1 <<ADPS1) | (0 <<ADPS0)) ; // ADC aktivieren, Interrupt aktivieren, Prescaler setzen
+//  ADCSRA = (1 << ADEN) | (1 << ADSC) | (1 << ADIE);
+  // ADMUX (Kanal wählen, z.B. A0)
   // Oder Timer-Trigger konfigurieren, z.B. ADCSRA |= (1 <<ADATE); ADTS Bits setzen
+  DIDR0 = (1 << ADC0D);
   sei(); // Globale Interrupts aktivieren
   ADCSRA |= (1 <<ADSC); // Erste Konvertierung starten
 }
