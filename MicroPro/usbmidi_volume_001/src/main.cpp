@@ -22,6 +22,9 @@
 #define D3 SCL
 #define D8 8
 #define D9 9
+#define D10 10
+
+#define Q14_ONE (1<<12)
 
 LiquidCrystal_I2C  lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);
 //LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -68,11 +71,19 @@ byte frownie[8] = {
 
 void controlChange(byte channel, byte control, byte value);
 void setupadc();
+void get_coeff(float a1, float b1, float l, float *al0, float *be0, float *be1);
+void setup_filter();
+void run_filter();
+void run_test_filter();
 
+float ak1[3];
+float bk1[3] = {Q14_ONE,0,0};
+int32_t zz[3];
 
 void setup() {
 
   Serial.begin(115200);
+  delay(5000);
   Serial.println("prg: USBMidi Volume 1");
 
   //Use predefined PINS consts
@@ -87,7 +98,6 @@ void setup() {
   lcd.print("USBMidi Volume 1");
   lcd.setCursor ( 0, 1 );
   lcd.print("V1.0");
-  delay(3000);
 
   lcd.home();
   lcd.clear();
@@ -101,9 +111,16 @@ void setup() {
   pinMode(LED_BUILTIN_RX, OUTPUT);
   pinMode(D8, OUTPUT);
   pinMode(D9, OUTPUT);
+  pinMode(D10, OUTPUT);
   digitalWrite(LED_BUILTIN_RX, LOW);
   digitalWrite(LED_BUILTIN_RX, HIGH);
   setupadc();
+  setup_filter();
+  for(int i=0; i<3; i++)
+    Serial.println(ak1[i]);
+  for(int i=0; i<3; i++)
+    Serial.println(bk1[i]);
+  run_test_filter();
 }
 
  int xk, xk1;
@@ -120,25 +137,33 @@ void loop()
 //  xk1 = xk>>8;
   currentMillis = millis();
   if (currentMillis - previousMillis >= interval) {
+    digitalWrite(D10, HIGH);
     // save the last time you blinked the LED
     //previousMillis = currentMillis;  //volumeChange(0, 0x7f);
     previousMillis += interval;  //volumeChange(0, 0x7f);
     a = adc_value >> 3;
+    a = a*2;
+    a = a/2;
+    a = a*2;
+    a = a/2;
+    a = a*2;
+    a = a/2;
+    a = a*2;
+    a = a/2;
     ADCSRA |= (1 <<ADSC); // Optional: Neue Konvertierung starten
     //a = analogRead(A0);
     if (a != aold) {
-      digitalWrite(D8, LOW);
-      controlChange(0, 0x7, a);
       digitalWrite(D8, HIGH);
+      controlChange(0, 0x7, a);
+      digitalWrite(D8, LOW);
       aold=a;
     }
     //MidiUSB.flush();
-    Serial.println(ADMUX, HEX);
-    Serial.println(ADCSRA, HEX);
-    Serial.println(ADCSRB, HEX);
-    Serial.println(ADC, HEX);
-
-    
+    //Serial.println(ADMUX, HEX);
+    //Serial.println(ADCSRA, HEX);
+    //Serial.println(ADCSRB, HEX);
+    //Serial.println(a, HEX);
+    digitalWrite(D10, LOW);
   }
   digitalWrite(LED_BUILTIN_RX, LOW);
 }
@@ -193,3 +218,51 @@ void setupadc() {
   ADCSRA |= (1 <<ADSC); // Erste Konvertierung starten
 }
 
+void setup_filter() {
+  // Bessel
+  const float a1 = 1.3397;
+  const float b1 = 0.4889;
+  const float a2 = 0.7743;
+  const float b2 = 0.3890;
+  const int fg = 10;
+  const int fs = 1000;
+  const float l = 1 / tan(3.14159*fg/fs);
+  get_coeff(a1, b1, l, &ak1[0], &bk1[1], &bk1[2]);
+}
+
+void get_coeff(float a1, float b1, float l, float *al0, float *be0, float *be1) {
+  *al0 = Q14_ONE * (1 / (1 + a1 * l + b1 * l * l));
+  *be0 = Q14_ONE * (2 * (1 - b1 * l * l) / (1 + a1 * l + b1 * l * l));
+  *be1 = Q14_ONE * ((1 - a1 * l + b1 * l * l) / (1 + a1 * l + b1 * l * l));
+  return;
+}
+
+void run_filter() {
+//    yn = al00 * uz + z0
+//    z1 = z2 - (be01 *  yn)
+//    z2 = - (be02 *  yn)
+//    z0 = z1
+//    z1 = z2
+}
+
+int32_t  output=0;
+
+void run_test_filter() {
+  int32_t input = 100;
+  int Qcoeff_sh = 10;
+  int32_t Qcoeff = (1<<Qcoeff_sh);
+  int32_t Icoeff = (int32_t) (0.20 * Qcoeff);
+  Serial.println("****************************************");
+  Serial.println(input);
+  Serial.println(Qcoeff);
+  Serial.println(Icoeff);
+  Serial.println(output);
+
+
+  for(int i=0; i<100; i++) {
+    //Serial.println((Qcoeff - Icoeff) * output);
+    output = ((Icoeff * input) + (((Qcoeff - Icoeff) * output) >> Qcoeff_sh));
+    Serial.println(output);
+    Serial.println(output >> Qcoeff_sh);
+  }
+}

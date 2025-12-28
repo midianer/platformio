@@ -11,18 +11,24 @@ import pylab
     
 input = 1.0 * 256;
 output = 0.0;
-coeff = 0.20 * 256;
+Qcoeff = 1024;
+Icoeff = 0.20 * Qcoeff;
 res = [];
+res1 = [];
 amp = [];
 ak1 = [0,0,0];
 bk1 = [1,0,0];
 
 #// Neue Berechnung
 for i in range(1, 50):
-  output = (int)((coeff * input) + (((1.0*256 - coeff) * output) / 256));
+  output = (int)((Icoeff * input) + (((Qcoeff - Icoeff) * output) / Qcoeff));
   ##output = int(output);
-  print(output/256);
+  print(output/Qcoeff);
+  res1.append(output/Qcoeff)
 
+plt.plot(res1)
+plt.ylabel('Einschwingen 1')
+plt.show()
 
 ##
 ###define Q15_ONE (1<<15) // 32768
