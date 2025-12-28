@@ -33,7 +33,7 @@ unsigned long previousMillis = 0;  // will store last time LED was updated
 unsigned long currentMillis;
 const long interval = 5;  // interval at which to blink (milliseconds)
 volatile uint16_t adc_value = ADC; // Wert aus dem ADC-Register lesen
-volatile uint16_t a, aold;
+volatile uint16_t a, aa, aold;
 
 // Creat a set of new characters
 byte smiley[8] = {
@@ -73,7 +73,7 @@ void controlChange(byte channel, byte control, byte value);
 void setupadc();
 void get_coeff(float a1, float b1, float l, float *al0, float *be0, float *be1);
 void setup_filter();
-void run_filter();
+int32_t run_filter(int32_t input);
 void run_test_filter();
 
 float ak1[3];
@@ -142,21 +142,14 @@ void loop()
     //previousMillis = currentMillis;  //volumeChange(0, 0x7f);
     previousMillis += interval;  //volumeChange(0, 0x7f);
     a = adc_value >> 3;
-    a = a*2;
-    a = a/2;
-    a = a*2;
-    a = a/2;
-    a = a*2;
-    a = a/2;
-    a = a*2;
-    a = a/2;
     ADCSRA |= (1 <<ADSC); // Optional: Neue Konvertierung starten
     //a = analogRead(A0);
-    if (a != aold) {
+    aa = run_filter(a);
+    if (aa != aold) {
       digitalWrite(D8, HIGH);
       controlChange(0, 0x7, a);
       digitalWrite(D8, LOW);
-      aold=a;
+      aold=aa;
     }
     //MidiUSB.flush();
     //Serial.println(ADMUX, HEX);
@@ -237,7 +230,19 @@ void get_coeff(float a1, float b1, float l, float *al0, float *be0, float *be1) 
   return;
 }
 
-void run_filter() {
+int32_t  output=0;
+int32_t  output1=0;
+int32_t  output2=0;
+
+int32_t run_filter(int32_t input) {
+  //int32_t input = 100;
+  int Qcoeff_sh = 10;
+  int32_t Qcoeff = (1<<Qcoeff_sh);
+  int32_t Icoeff = (int32_t) (0.05 * Qcoeff);
+    output1 = Icoeff * input;
+    output2 =  (Qcoeff - Icoeff) * output;
+    output = output1 + (output2 >> Qcoeff_sh);
+    return(output >> Qcoeff_sh);
 //    yn = al00 * uz + z0
 //    z1 = z2 - (be01 *  yn)
 //    z2 = - (be02 *  yn)
@@ -245,24 +250,29 @@ void run_filter() {
 //    z1 = z2
 }
 
-int32_t  output=0;
-
 void run_test_filter() {
   int32_t input = 100;
   int Qcoeff_sh = 10;
   int32_t Qcoeff = (1<<Qcoeff_sh);
-  int32_t Icoeff = (int32_t) (0.20 * Qcoeff);
+  int32_t Icoeff = (int32_t) (0.1 * Qcoeff);
   Serial.println("****************************************");
   Serial.println(input);
   Serial.println(Qcoeff);
   Serial.println(Icoeff);
   Serial.println(output);
+  Serial.println("****************************************");
 
 
-  for(int i=0; i<100; i++) {
+  for(int i=0; i<50; i++) {
     //Serial.println((Qcoeff - Icoeff) * output);
-    output = ((Icoeff * input) + (((Qcoeff - Icoeff) * output) >> Qcoeff_sh));
+    //output = ((Icoeff * input) + (((Qcoeff - Icoeff) * output) >> Qcoeff_sh));
+    output1 = Icoeff * input;
+    output2 =  (Qcoeff - Icoeff) * output;
+    output = output1 + (output2 >> Qcoeff_sh);
+    Serial.println(output1);
+    Serial.println(output2);
     Serial.println(output);
     Serial.println(output >> Qcoeff_sh);
+    Serial.println("+++");
   }
 }
