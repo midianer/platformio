@@ -24,7 +24,8 @@
 #define D9 9
 #define D10 10
 
-#define Q14_ONE (1<<12)
+int QQcoeff_sh = 12;
+#define QQ_ONE (1<<QQcoeff_sh)
 
 LiquidCrystal_I2C  lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);
 //LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -71,25 +72,20 @@ byte frownie[8] = {
 
 void controlChange(byte channel, byte control, byte value);
 void setupadc();
-void get_coeff(float a1, float b1, float l, float *al0, float *be0, float *be1);
+void get_coeff(float a1, float b1, float l, int32_t *al0, int32_t *be0, int32_t *be1);
 void setup_filter();
-int32_t run_filter(int32_t input);
-void run_test_filter();
+int32_t run_filter_loop(int32_t input);
+int32_t run_test_filter_loop(int32_t input);
+void run_test_filter_one();
+float ampli_0(void);
 
-float ak1[3];
-float bk1[3] = {Q14_ONE,0,0};
+int32_t ak1[3];
+int32_t bk1[3] = {QQ_ONE,0,0};
 int32_t zz[3];
 
 void setup() {
 
   Serial.begin(115200);
-  delay(5000);
-  Serial.println("prg: USBMidi Volume 1");
-
-  //Use predefined PINS consts
-
-  //Wire.begin(D2, D3);
-
   lcd.begin (16,2);
   lcd.setBacklightPin(BACKLIGHT_PIN,POSITIVE);
   lcd.setBacklight(HIGH);
@@ -98,6 +94,15 @@ void setup() {
   lcd.print("USBMidi Volume 1");
   lcd.setCursor ( 0, 1 );
   lcd.print("V1.0");
+
+  delay(5000);
+
+  Serial.println("prg: USBMidi Volume 1");
+
+  //Use predefined PINS consts
+
+  //Wire.begin(D2, D3);
+
 
   lcd.home();
   lcd.clear();
@@ -116,11 +121,14 @@ void setup() {
   digitalWrite(LED_BUILTIN_RX, HIGH);
   setupadc();
   setup_filter();
+  Serial.println("ak, bk, ampli_0");
   for(int i=0; i<3; i++)
     Serial.println(ak1[i]);
   for(int i=0; i<3; i++)
     Serial.println(bk1[i]);
-  run_test_filter();
+  Serial.println(ampli_0());
+  //run_test_filter_one();
+  run_filter_loop(100);
 }
 
  int xk, xk1;
@@ -144,10 +152,10 @@ void loop()
     a = adc_value >> 3;
     ADCSRA |= (1 <<ADSC); // Optional: Neue Konvertierung starten
     //a = analogRead(A0);
-    aa = run_filter(a);
+    aa = run_test_filter_loop(a);
     if (aa != aold) {
       digitalWrite(D8, HIGH);
-      controlChange(0, 0x7, a);
+      controlChange(0, 0x7, aa);
       digitalWrite(D8, LOW);
       aold=aa;
     }
@@ -223,38 +231,62 @@ void setup_filter() {
   get_coeff(a1, b1, l, &ak1[0], &bk1[1], &bk1[2]);
 }
 
-void get_coeff(float a1, float b1, float l, float *al0, float *be0, float *be1) {
-  *al0 = Q14_ONE * (1 / (1 + a1 * l + b1 * l * l));
-  *be0 = Q14_ONE * (2 * (1 - b1 * l * l) / (1 + a1 * l + b1 * l * l));
-  *be1 = Q14_ONE * ((1 - a1 * l + b1 * l * l) / (1 + a1 * l + b1 * l * l));
+void get_coeff(float a1, float b1, float l, int32_t *al0, int32_t *be0, int32_t *be1) {
+  *al0 = QQ_ONE * (1 / (1 + a1 * l + b1 * l * l));
+  *be0 = QQ_ONE * (2 * (1 - b1 * l * l) / (1 + a1 * l + b1 * l * l));
+  *be1 = QQ_ONE * ((1 - a1 * l + b1 * l * l) / (1 + a1 * l + b1 * l * l));
+  Serial.println("*al0");
+  Serial.println(*al0);
+  *al0 *= 1.0/ampli_0();
   return;
 }
 
+int32_t  yn=0;
 int32_t  output=0;
 int32_t  output1=0;
 int32_t  output2=0;
 
-int32_t run_filter(int32_t input) {
+int32_t run_filter_loop(int32_t input) {
+  Serial.println("----run_filter_loop------");
+  Serial.println(ak1[0]);
+  Serial.println(bk1[0]);
+  Serial.println(bk1[1]);
+  Serial.println(bk1[2]);
+  for(int i=0; i<100; i++) {
+    yn = ak1[0] * input + (zz[0] >> QQcoeff_sh);
+    zz[1] = zz[2] - (bk1[1] *  yn);
+    zz[2] = - (bk1[2] *  yn);
+    zz[0] = zz[1];
+    zz[1] = zz[2];
+    //yn >>= QQcoeff_sh;
+    //zz[0] >>= QQcoeff_sh;
+    //zz[1] >>= QQcoeff_sh;
+    //zz[2] >>= QQcoeff_sh;
+    Serial.println("++++++++");
+    Serial.println(yn);
+    Serial.println(zz[0]);
+    Serial.println(zz[1]);
+    Serial.println(yn >> QQcoeff_sh);
+  }
+  return(yn);
+}
+
+int32_t run_test_filter_loop(int32_t input) {
   //int32_t input = 100;
   int Qcoeff_sh = 10;
   int32_t Qcoeff = (1<<Qcoeff_sh);
   int32_t Icoeff = (int32_t) (0.05 * Qcoeff);
-    output1 = Icoeff * input;
-    output2 =  (Qcoeff - Icoeff) * output;
-    output = output1 + (output2 >> Qcoeff_sh);
-    return(output >> Qcoeff_sh);
-//    yn = al00 * uz + z0
-//    z1 = z2 - (be01 *  yn)
-//    z2 = - (be02 *  yn)
-//    z0 = z1
-//    z1 = z2
+  output1 = Icoeff * input;
+  output2 =  (Qcoeff - Icoeff) * output;
+  output = output1 + (output2 >> Qcoeff_sh);
+  return(output >> Qcoeff_sh);
 }
 
-void run_test_filter() {
+void run_test_filter_one() {
   int32_t input = 100;
   int Qcoeff_sh = 10;
   int32_t Qcoeff = (1<<Qcoeff_sh);
-  int32_t Icoeff = (int32_t) (0.1 * Qcoeff);
+  int32_t Icoeff = (int32_t) (0.05 * Qcoeff);
   Serial.println("****************************************");
   Serial.println(input);
   Serial.println(Qcoeff);
@@ -275,4 +307,16 @@ void run_test_filter() {
     Serial.println(output >> Qcoeff_sh);
     Serial.println("+++");
   }
+}
+
+float ampli_0(void) {
+  float a0, b0 = 0.0;
+  for(int i=0; i<3; i++) {
+    a0 += ak1[i];
+    b0 += bk1[i];
+  }
+  Serial.println("+++ampli_0+++");
+  Serial.println(a0);
+  Serial.println(b0);
+  return(a0 / b0);
 }

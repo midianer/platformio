@@ -14,6 +14,7 @@ output = 0.0;
 Qcoeff = 1024;
 Icoeff = 0.20 * Qcoeff;
 res = [];
+Qres = [];
 res1 = [];
 amp = [];
 ak1 = [0,0,0];
@@ -70,8 +71,12 @@ print(l)
 al00, be01, be02 = get_coeff(a1, b1, l)
 ak1[0], bk1[1], bk1[2] = get_coeff(a1, b1, l)
 al10, be11, be12 = get_coeff(a2, b2, l)
+print("al00")
 print(al00, be01, be02)
+print("al10")
 print(al10, be11, be12)
+print("l")
+print(l)
 
 z0 = z1 = z2 = 0
 uz = 1
@@ -83,13 +88,37 @@ for i in range(1, 100):
     z2 = - (be02 *  yn)
     z0 = z1
     z1 = z2
-    print(yn, z0, z1, z2)
-    print("{:4.4} {:4.4}".format(yn, z0))
+    ##print(yn, z0, z1, z2)
+    print("BESSEL {:6.4f} {:6.4f} {:6.4f} {:6.4f}".format(yn, z0, z1, z2))
     res.append(yn)
 
 plt.plot(res)
 plt.ylabel('Einschwingen')
 plt.show()
+
+QQQQ = 1000
+Qal10 = al00 * QQQQ
+Qbe11 = be01 * QQQQ
+Qbe12 = be02 * QQQQ
+
+Quz = 100
+yn=0
+z0 = z1 = z2 = 0
+
+for i in range(1, 200):
+    yn = Qal10 * Quz + z0 / QQQQ
+    z1 = z2 - (Qbe11 *  yn)
+    z2 = - (Qbe12 *  yn) 
+    z0 = z1
+    z1 = z2
+    ##print(yn, z0, z1, z2)
+    print("QBESSEL {:12.1f} {:12.1f} {:12.1f} {:12.1f}".format(yn, z0, z1, z2))
+    Qres.append(yn / QQQQ)
+
+plt.plot(Qres)
+plt.ylabel('Einschwingen')
+plt.show()
+
 
 step = 0.0001
 
@@ -103,12 +132,11 @@ for f in np.arange(step, 0.5, step):
     sumasin += ak1[i] * np.sin(2 * np.pi * i * f)
     sumbcos += bk1[i] * np.cos(2 * np.pi * i * f) 
     sumbsin += bk1[i] * np.sin(2 * np.pi * i * f)
-  #print(np.sqrt((sumacos*sumacos +sumasin*sumasin) / (sumbcos*sumbcos + sumbsin*sumbsin)))
+  print(np.sqrt((sumacos*sumacos +sumasin*sumasin) / (sumbcos*sumbcos + sumbsin*sumbsin)))
   #print(f)
   amp.append(np.sqrt((sumacos*sumacos +sumasin*sumasin) / (sumbcos*sumbcos + sumbsin*sumbsin)))
   #np.append(amp, np.sqrt((sumacos*sumacos +sumasin*sumasin) / (sumbcos*sumbcos + sumbsin*sumbsin)))
   #amp.append(np.log10(np.sqrt((sumacos*sumacos +sumasin*sumasin) / (sumbcos*sumbcos + sumbsin*sumbsin))))
-
 
 npamp = np.array(amp);
 xx = np.arange(step, 0.5, step)
@@ -136,3 +164,19 @@ ax.set_ylim([0.0001, 1])
 ax.grid()
 
 plt.show()
+
+## calculate f(0)
+sumacos = 0
+sumasin = 0
+sumbcos = 0
+sumbsin = 0
+for i in range(0,3):
+  sumacos += ak1[i] * np.cos(2 * np.pi * i * 0) 
+  sumasin += ak1[i] * np.sin(2 * np.pi * i * 0)
+  sumbcos += bk1[i] * np.cos(2 * np.pi * i * 0) 
+  sumbsin += bk1[i] * np.sin(2 * np.pi * i * 0)
+print("np.sqrt((sumacos*sumacos +sumasin*sumasin) / (sumbcos*sumbcos + sumbsin*sumbsin)) = ")
+print(np.sqrt((sumacos*sumacos +sumasin*sumasin) / (sumbcos*sumbcos + sumbsin*sumbsin)))
+print("sumacos / sumbcos = ")
+print(sumacos / sumbcos)
+
