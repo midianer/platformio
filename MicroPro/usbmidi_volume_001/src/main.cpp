@@ -79,7 +79,7 @@ int32_t run_filter_loop(int32_t input);
 int32_t run_filter_one(int32_t input);
 int32_t run_test_filter_loop(int32_t input);
 void run_test_filter_one();
-float set_ampl(void);
+float set_ampl(int32_t ak[3], int32_t bk[3]);
 
 int32_t ak1[3];
 int32_t bk1[3] = {QQ_ONE,0,0};;
@@ -131,7 +131,7 @@ void setup() {
     Serial.println(ak1[i]);
   for(int i=0; i<3; i++)
     Serial.println(bk1[i]);
-  Serial.println(set_ampl());
+  //Serial.println(set_ampl(ak1, bk1));
   //run_test_filter_one();
   run_filter_one(100);
 }
@@ -253,7 +253,7 @@ void get_coeff(float a1, float b1, float l, int32_t *al0, int32_t *be0, int32_t 
   *be1 = QQ_ONE * ((1 - a1 * l + b1 * l * l) / (1 + a1 * l + b1 * l * l));
   Serial.println("*al0");
   Serial.println(*al0);
-  *al0 *= 1.0/set_ampl();
+  //*al0 *= 1.0/set_ampl(ak, bk);
   cc[0]=1234;
   cc[5]=5678;
   return;
@@ -268,7 +268,7 @@ void get_coeff1(float a1, float b1, float l, int32_t ak[3], int32_t bk[3], int32
   bk[2] = QQ_ONE * ((1 - a1 * l + b1 * l * l) / (1 + a1 * l + b1 * l * l));
   Serial.println("ak[x]");
   Serial.println(ak[0]);
-  ak[0] *= 1.0/set_ampl();
+  ak[0] *= 1.0/set_ampl(ak, bk);
   Serial.println("ak[x]");
   Serial.println(ak[0]);
   cc[0]=1234;
@@ -276,13 +276,13 @@ void get_coeff1(float a1, float b1, float l, int32_t ak[3], int32_t bk[3], int32
   return;
 }
 
-float set_ampl(void) {
+float set_ampl(int32_t ak[3], int32_t bk[3]) {
   float a0, b0 = 0.0;
   for(int i=0; i<3; i++) {
-    a0 += ak1[i];
-    b0 += bk1[i];
-    Serial.println(ak1[i]);
-    Serial.println(bk1[i]);
+    a0 += ak[i];
+    b0 += bk[i];
+    Serial.println(ak[i]);
+    Serial.println(bk[i]);
   }
   Serial.println("+++set_ampl+++");
   Serial.println(a0);
@@ -314,13 +314,19 @@ int32_t run_filter_one(int32_t input) {
 }
 
 int32_t run_filter_loop(int32_t input) {
-  static int32_t yn=0;
+  static int32_t yn=0, ynb=0;
   static int32_t zz[3];
+  static int32_t zzb[3];
   yn = ak1[0] * input + (zz[0] >> QQcoeff_sh);
   zz[1] = zz[2] - (bk1[1] *  yn);
   zz[2] = - (bk1[2] *  yn);
   zz[0] = zz[1];
   zz[1] = zz[2];
+  ynb = ak2[0] * (yn >> QQcoeff_sh) + (zzb[0] >> QQcoeff_sh);
+  zzb[1] = zzb[2] - (bk2[1] *  ynb);
+  zzb[2] = - (bk2[2] *  ynb);
+  zzb[0] = zzb[1];
+  zzb[1] = zzb[2];
   return((yn + (QQ_ONE >> 2)) >>  QQcoeff_sh );
 }
 
