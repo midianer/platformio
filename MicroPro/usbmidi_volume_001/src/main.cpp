@@ -32,9 +32,9 @@ LiquidCrystal_I2C  lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin
 
 unsigned long previousMillis = 0;  // will store last time LED was updated
 unsigned long currentMillis;
-const long interval = 5;  // interval at which to blink (milliseconds)
+const long interval = 2;  // interval at which to blink (milliseconds)
 volatile uint16_t adc_value = ADC; // Wert aus dem ADC-Register lesen
-volatile uint16_t a, aa, aold;
+
 
 // Creat a set of new characters
 byte smiley[8] = {
@@ -73,17 +73,19 @@ byte frownie[8] = {
 void controlChange(byte channel, byte control, byte value);
 void setupadc();
 void get_coeff(float a1, float b1, float l, int32_t *al0, int32_t *be0, int32_t *be1, int32_t cc[]);
+void get_coeff1(float a1, float b1, float l, int32_t ak[3], int32_t bk[3], int32_t cc[]);
 void setup_filter();
 int32_t run_filter_loop(int32_t input);
+int32_t run_filter_one(int32_t input);
 int32_t run_test_filter_loop(int32_t input);
 void run_test_filter_one();
 float set_ampl(void);
 
 int32_t ak1[3];
-int32_t bk1[3] = {QQ_ONE,0,0};
-int32_t zz[3];
+int32_t bk1[3] = {QQ_ONE,0,0};;
+int32_t ak2[3];
+int32_t bk2[3];
 int32_t cc[3];
-int32_t yn=0;
 
 
 void setup() {
@@ -131,7 +133,7 @@ void setup() {
     Serial.println(bk1[i]);
   Serial.println(set_ampl());
   //run_test_filter_one();
-  run_filter_loop(100);
+  run_filter_one(100);
 }
 
  int xk, xk1;
@@ -139,6 +141,10 @@ void setup() {
 
 void loop()
 { 
+  static uint16_t adc_val_old;
+  static uint16_t adc_sh;
+  static uint16_t adc_filt;
+
   digitalWrite(LED_BUILTIN_RX, HIGH);
 //  xk = (a * 16 + 16 * 15 * xk) >> 8;
 //  if(xk>>8 != xk1) {
@@ -152,15 +158,18 @@ void loop()
     // save the last time you blinked the LED
     //previousMillis = currentMillis;  //volumeChange(0, 0x7f);
     previousMillis += interval;  //volumeChange(0, 0x7f);
-    a = adc_value >> 3;
+    adc_sh = adc_value >> 3;
     ADCSRA |= (1 <<ADSC); // Optional: Neue Konvertierung starten
-    //a = analogRead(A0);
-    aa = run_test_filter_loop(a);
-    if (aa != aold) {
+    //adc_filt = analogRead(A0);
+    //adc_filt = run_test_filter_loop(a);
+    adc_filt = run_filter_loop(adc_sh); 
+    if (adc_filt != adc_val_old) {
       digitalWrite(D8, HIGH);
-      controlChange(0, 0x7, aa);
+      controlChange(0, 0x7, adc_filt);
       digitalWrite(D8, LOW);
-      aold=aa;
+      adc_val_old=adc_filt;
+      //Serial.println(adc_value);
+      //Serial.println(adc_filt);
     }
     //MidiUSB.flush();
     //Serial.println(ADMUX, HEX);
@@ -228,10 +237,13 @@ void setup_filter() {
   const float b1 = 0.4889;
   const float a2 = 0.7743;
   const float b2 = 0.3890;
-  const int fg = 10;
+  const int fg = 20;
   const int fs = 1000;
   const float l = 1 / tan(3.14159*fg/fs);
-  get_coeff(a1, b1, l, &ak1[0], &bk1[1], &bk1[2], cc);
+  get_coeff1(a1, b1, l, ak1, bk1, cc);
+  get_coeff1(a2, b2, l, ak2, bk2, cc);
+  //get_coeff(a1, b1, l, &ak1[0], &bk1[1], &bk1[2], cc);
+  //get_coeff(a2, b2, l, ak2, bk2, cc);
   Serial.println(cc[0]);
 }
 
@@ -247,11 +259,30 @@ void get_coeff(float a1, float b1, float l, int32_t *al0, int32_t *be0, int32_t 
   return;
 }
 
+void get_coeff1(float a1, float b1, float l, int32_t ak[3], int32_t bk[3], int32_t cc[]) {
+  ak[0] = QQ_ONE * (1 / (1 + a1 * l + b1 * l * l));
+  ak[1] = 0;
+  ak[2] = 0;
+  bk[0] = QQ_ONE;
+  bk[1] = QQ_ONE * (2 * (1 - b1 * l * l) / (1 + a1 * l + b1 * l * l));
+  bk[2] = QQ_ONE * ((1 - a1 * l + b1 * l * l) / (1 + a1 * l + b1 * l * l));
+  Serial.println("ak[x]");
+  Serial.println(ak[0]);
+  ak[0] *= 1.0/set_ampl();
+  Serial.println("ak[x]");
+  Serial.println(ak[0]);
+  cc[0]=1234;
+  cc[5]=5678;
+  return;
+}
+
 float set_ampl(void) {
   float a0, b0 = 0.0;
   for(int i=0; i<3; i++) {
     a0 += ak1[i];
     b0 += bk1[i];
+    Serial.println(ak1[i]);
+    Serial.println(bk1[i]);
   }
   Serial.println("+++set_ampl+++");
   Serial.println(a0);
@@ -259,8 +290,10 @@ float set_ampl(void) {
   return(a0 / b0);
 }
 
-int32_t run_filter_loop(int32_t input) {
-  Serial.println("----run_filter_loop------");
+int32_t run_filter_one(int32_t input) {
+  static int32_t yn=0;
+  static int32_t zz[3];
+  Serial.println("----run_filter_one------");
   Serial.println(ak1[0]);
   Serial.println(bk1[0]);
   Serial.println(bk1[1]);
@@ -271,10 +304,6 @@ int32_t run_filter_loop(int32_t input) {
     zz[2] = - (bk1[2] *  yn);
     zz[0] = zz[1];
     zz[1] = zz[2];
-    //yn >>= QQcoeff_sh;
-    //zz[0] >>= QQcoeff_sh;
-    //zz[1] >>= QQcoeff_sh;
-    //zz[2] >>= QQcoeff_sh;
     Serial.println("++++++++");
     Serial.println(yn);
     Serial.println(zz[0]);
@@ -284,4 +313,14 @@ int32_t run_filter_loop(int32_t input) {
   return(yn);
 }
 
+int32_t run_filter_loop(int32_t input) {
+  static int32_t yn=0;
+  static int32_t zz[3];
+  yn = ak1[0] * input + (zz[0] >> QQcoeff_sh);
+  zz[1] = zz[2] - (bk1[1] *  yn);
+  zz[2] = - (bk1[2] *  yn);
+  zz[0] = zz[1];
+  zz[1] = zz[2];
+  return((yn + (QQ_ONE >> 2)) >>  QQcoeff_sh );
+}
 
