@@ -6,6 +6,37 @@
 //using namespace std;
 
 //USBMIDI_CREATE_DEFAULT_INSTANCE();
+//#include <iostream>
+using namespace std;
+
+// Class definition
+class GfG
+{
+  public:
+    // Data member
+    int val;
+
+    // Member function
+    void show()
+    {
+//        cout << "Value: " << val << endl;
+    }
+};
+
+class Car {        // The class
+  public:          // Access specifier
+    String brand;  // Attribute
+    String model;  // Attribute
+    int year;      // Attribute
+    Car(String x, String y, int z); // Constructor declaration
+};
+
+// Constructor definition outside the class
+Car::Car(String x, String y, int z) {
+  brand = x;
+  model = y;
+  year = z;
+}
 
 void volumeChange(byte channel, byte volume);
 void controlChange(byte channel, byte control, byte value);
@@ -17,6 +48,8 @@ void controlChange(byte channel, byte control, byte value);
 void setup(void){
   Serial.begin(115200);
   Serial.println("NodeMCU_Volume");
+  Car carObj1("BMW", "X5", 1999);
+  Car carObj2("Ford", "Mustang", 1969);
 }
 
 //==============================================================

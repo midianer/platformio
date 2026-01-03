@@ -322,11 +322,11 @@ int32_t run_filter_loop(int32_t input) {
   zz[2] = - (bk1[2] *  yn);
   zz[0] = zz[1];
   zz[1] = zz[2];
-  ynb = ak2[0] * (yn >> QQcoeff_sh) + (zzb[0] >> QQcoeff_sh);
+  ynb = ak2[0] * ((yn + (QQ_ONE >> 2)) >> QQcoeff_sh) + (zzb[0] >> QQcoeff_sh);
   zzb[1] = zzb[2] - (bk2[1] *  ynb);
   zzb[2] = - (bk2[2] *  ynb);
   zzb[0] = zzb[1];
   zzb[1] = zzb[2];
-  return((yn + (QQ_ONE >> 2)) >>  QQcoeff_sh );
+  return((ynb + (QQ_ONE >> 2)) >>  QQcoeff_sh );
 }
 
