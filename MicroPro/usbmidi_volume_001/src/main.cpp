@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <MIDIUSB.h>
+#include "volume.h"
 
 /*******************************
 **    usbmidi_volume_001      **
@@ -24,8 +25,12 @@
 #define D9 9
 #define D10 10
 
-int QQcoeff_sh = 12;
+const int QQcoeff_sh = 12;
 #define QQ_ONE (1<<QQcoeff_sh)
+
+const float C_a1 = 1.3397;
+const float C_b1 = 0.4889;
+
 
 LiquidCrystal_I2C  lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);
 //LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -87,6 +92,8 @@ int32_t ak2[3];
 int32_t bk2[3];
 int32_t cc[3];
 
+C_Volume cv(C_a1, C_b1);
+
 
 void setup() {
 
@@ -134,6 +141,15 @@ void setup() {
   //Serial.println(set_ampl(ak1, bk1));
   //run_test_filter_one();
   run_filter_one(100);
+
+  cv.setup_filter();
+  cv.run_filter_one(50);
+  //C_Volume cv1(C_a1, C_b1);
+  //cv1.setup_filter();
+  //C_Volume cv2(C_a1, C_b1);
+  //cv2.setup_filter();
+  //C_Volume cv3(C_a1, C_b1);
+  //cv3.setup_filter();
 }
 
  int xk, xk1;
@@ -162,7 +178,7 @@ void loop()
     ADCSRA |= (1 <<ADSC); // Optional: Neue Konvertierung starten
     //adc_filt = analogRead(A0);
     //adc_filt = run_test_filter_loop(a);
-    adc_filt = run_filter_loop(adc_sh); 
+    adc_filt = cv.run_filter_loop(adc_sh); 
     if (adc_filt != adc_val_old) {
       digitalWrite(D8, HIGH);
       controlChange(0, 0x7, adc_filt);
@@ -277,7 +293,8 @@ void get_coeff1(float a1, float b1, float l, int32_t ak[3], int32_t bk[3], int32
 }
 
 float set_ampl(int32_t ak[3], int32_t bk[3]) {
-  float a0, b0 = 0.0;
+  float a0 = 0.0f;
+  float b0 = 0.0f;
   for(int i=0; i<3; i++) {
     a0 += ak[i];
     b0 += bk[i];

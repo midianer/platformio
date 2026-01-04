@@ -5,3 +5,9 @@ esptool.py --chip esp8266 --port /dev/ttyUSB1 write_flash 0x000000 ~/PlatformIO/
 
 esptool.py --chip esp8266 --port /dev/ttyUSB1 --baud 115200 write_flash 0x000000 ~/PlatformIO/EspE8266_001_Ajax/.pio/build/esp12e/firmware.elf
 
+
+xfce4-terminal -T usbmidi_volume_001 --working-directory ~/PlatformIO/MicroPro/usbmidi_volume_001 \
+--tab  -T usbmidi_volume_001 --working-directory ~/PlatformIO/MicroPro/usbmidi_volume_001 \
+--tab  -T usbmidi_volume_001 --working-directory ~/PlatformIO/MicroPro/usbmidi_volume_001 \
+--tab  -T usbmidi_volume_001 --working-directory ~/PlatformIO/MicroPro/usbmidi_volume_001 \
+--tab  -T usbmidi_volume_001 --working-directory ~/PlatformIO/MicroPro/usbmidi_volume_001
