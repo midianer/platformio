@@ -37,9 +37,14 @@ LiquidCrystal_I2C  lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin
 
 unsigned long previousMillis = 0;  // will store last time LED was updated
 unsigned long currentMillis;
-const long interval = 2;  // interval at which to blink (milliseconds)
-volatile uint16_t adc_value = ADC; // Wert aus dem ADC-Register lesen
+const long interval = 200;  // interval at which to blink (milliseconds)
+volatile uint16_t adc_value[3];
 
+int adc_mux_arr[3] =
+{ ((1 << MUX2) | (1 << MUX1) | (1 << MUX0) | (1 <<REFS0)),  // ADC(2) 
+  ((1 << MUX2) | (1 << MUX1) | (0 << MUX0) | (1 <<REFS0)),  // ADC(1)
+  ((1 << MUX2) | (0 << MUX1) | (1 << MUX0) | (1 <<REFS0))   // ADC(0)
+};
 
 // Creat a set of new characters
 byte smiley[8] = {
@@ -80,6 +85,7 @@ void setupadc();
 void get_coeff(float a1, float b1, float l, int32_t *al0, int32_t *be0, int32_t *be1, int32_t cc[]);
 void get_coeff1(float a1, float b1, float l, int32_t ak[3], int32_t bk[3], int32_t cc[]);
 void setup_filter();
+int32_t get_adc(int adc_num);
 int32_t run_filter_loop(int32_t input);
 int32_t run_filter_one(int32_t input);
 int32_t run_test_filter_loop(int32_t input);
@@ -91,8 +97,11 @@ int32_t bk1[3] = {QQ_ONE,0,0};;
 int32_t ak2[3];
 int32_t bk2[3];
 int32_t cc[3];
+volatile uint16_t isr_cnt;
 
-C_Volume cv(C_a1, C_b1);
+
+C_Volume vol1(C_a1, C_b1, "VOL1");
+C_Volume vol2(C_a1, C_b1, "VOL2");
 
 
 void setup() {
@@ -142,8 +151,15 @@ void setup() {
   //run_test_filter_one();
   run_filter_one(100);
 
-  cv.setup_filter();
-  cv.run_filter_one(50);
+  vol1.setup_filter();
+  vol2.setup_filter();
+  vol1.run_filter_one(50);
+  get_adc(0);
+  Serial.println("****get_adc****");
+  Serial.println(get_adc(0) >> 3);
+  //vol1.set_adc_cb(get_adc);
+  //Serial.println("****get_adc****");
+  //Serial.println(vol1.get_adc() >> 3);
   //C_Volume cv1(C_a1, C_b1);
   //cv1.setup_filter();
   //C_Volume cv2(C_a1, C_b1);
@@ -157,10 +173,10 @@ void setup() {
 
 void loop()
 { 
-  static uint16_t adc_val_old;
-  static uint16_t adc_sh;
-  static uint16_t adc_filt;
-
+  static uint16_t adc_val_old[3];
+  static uint16_t adc_sh[3];
+  static uint16_t adc_filt[3];
+  
   digitalWrite(LED_BUILTIN_RX, HIGH);
 //  xk = (a * 16 + 16 * 15 * xk) >> 8;
 //  if(xk>>8 != xk1) {
@@ -174,16 +190,37 @@ void loop()
     // save the last time you blinked the LED
     //previousMillis = currentMillis;  //volumeChange(0, 0x7f);
     previousMillis += interval;  //volumeChange(0, 0x7f);
-    adc_sh = adc_value >> 3;
+    adc_sh[0] = adc_value[0] >> 3;
+    adc_sh[1] = adc_value[1] >> 3;
+    adc_sh[2] = adc_value[2] >> 3;
+    Serial.println("adc_sh");
+    Serial.println(adc_sh[0]);
+    Serial.println(adc_sh[1]);
+    Serial.println(adc_sh[2]);
+    isr_cnt = 2;
+    ADMUX = adc_mux_arr[isr_cnt];
     ADCSRA |= (1 <<ADSC); // Optional: Neue Konvertierung starten
     //adc_filt = analogRead(A0);
     //adc_filt = run_test_filter_loop(a);
-    adc_filt = cv.run_filter_loop(adc_sh); 
-    if (adc_filt != adc_val_old) {
+    adc_filt[0] = vol1.run_filter_loop(adc_sh[0]);
+    adc_filt[1] = vol2.run_filter_loop(adc_sh[1]);
+    Serial.println("adc_filt");
+    Serial.println(adc_filt[0]);
+    Serial.println(adc_filt[1]);
+    Serial.println(adc_filt[2]);
+    if (adc_filt[0] != adc_val_old[0]) {
       digitalWrite(D8, HIGH);
-      controlChange(0, 0x7, adc_filt);
+      controlChange(0, 0x7, adc_filt[0]);
       digitalWrite(D8, LOW);
-      adc_val_old=adc_filt;
+      adc_val_old[0]=adc_filt[0];
+      //Serial.println(adc_value);
+      //Serial.println(adc_filt);
+    }
+    if (adc_filt[1] != adc_val_old[1]) {
+      digitalWrite(D8, HIGH);
+      controlChange(1, 0x7, adc_filt[1]);
+      digitalWrite(D8, LOW);
+      adc_val_old[1]=adc_filt[1];
       //Serial.println(adc_value);
       //Serial.println(adc_filt);
     }
@@ -227,11 +264,20 @@ ISR(ADC_vect) {
   digitalWrite(D9, LOW);
   digitalWrite(D9, HIGH);
   //adc_value = analogRead(A0);
-  adc_value = ADC; // Wert aus dem ADC-Register lesen
-  digitalWrite(D9, adc_value>>2);
+  adc_value[isr_cnt] = ADC; // Wert aus dem ADC-Register lesen
+  //digitalWrite(D9, adc_value[0]>>2);
   // Hier Wert verarbeiten oder in eine Queue legen
+  if(isr_cnt > 0) {
+    isr_cnt--;
+    ADMUX = adc_mux_arr[isr_cnt];
+    ADCSRA |= (1 <<ADSC); // Neue Konvertierung starten
+  }
   digitalWrite(D9, LOW);
   digitalWrite(D9, HIGH);
+}
+
+int32_t get_adc(int adc_num) {
+  return adc_value[adc_num];
 }
 
 void setupadc() {

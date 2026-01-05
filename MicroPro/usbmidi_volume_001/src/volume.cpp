@@ -4,20 +4,10 @@
 const int QQcoeff_sh = 12;
 #define QQ_ONE (1<<QQcoeff_sh)
 
-//class C_Volume {
-//  private:
-//    float _a1;
-//    float _b1;
-//  public:
-//    float a1;
-//    float b1;
-//    C_Volume(float a1, float b1);
-//    void get_coeff1(float a1, float b1, float l, int32_t ak[3], int32_t bk[3], int32_t cc[]);
-//};
-
-C_Volume::C_Volume(float a1, float b1):
+C_Volume::C_Volume(float a1, float b1, String id):
   _a1(a1),
-  _b1(b1)
+  _b1(b1),
+  _id(id)
 {}
 
 void C_Volume::setup_filter() {
@@ -92,9 +82,12 @@ int32_t C_Volume::run_filter_one(int32_t input) {
 }
 
 int32_t C_Volume::run_filter_loop(int32_t input) {
-  static int32_t yn=0, ynb=0;
-  static int32_t zz[3];
-  static int32_t zzb[3];
+  //static int32_t yn=0, ynb=0;
+  //static int32_t zz[3];
+  //static int32_t zzb[3];
+  Serial.println("input");
+  Serial.println(_id);
+  Serial.println(input);
   yn = ak1[0] * input + (zz[0] >> QQcoeff_sh);
   zz[1] = zz[2] - (bk1[1] *  yn);
   zz[2] = - (bk1[2] *  yn);
@@ -108,3 +101,6 @@ int32_t C_Volume::run_filter_loop(int32_t input) {
   return((ynb + (QQ_ONE >> 2)) >>  QQcoeff_sh );
 }
 
+//void C_Volume::set_adc_cb(int32_t (*func_adc)(void)) {
+//  get_adc = func_adc;
+//}
