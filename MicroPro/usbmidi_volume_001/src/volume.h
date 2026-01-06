@@ -1,5 +1,8 @@
 #include <Arduino.h>
 
+#ifndef __volume_h
+#define __volume_h
+
 //#define QQ_ONE (1<<QQcoeff_sh)
 
 class C_Volume {
@@ -31,3 +34,4 @@ class C_Volume {
     //std::function<int32_t(void)> get_adc;
 };
 
+#endif

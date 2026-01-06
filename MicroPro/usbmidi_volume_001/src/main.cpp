@@ -3,6 +3,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <MIDIUSB.h>
 #include "volume.h"
+#include "debounce.h"
 
 /*******************************
 **    usbmidi_volume_001      **
@@ -105,9 +106,11 @@ int32_t bk2[3];
 int32_t cc[3];
 volatile uint16_t isr_cnt;
 
-
 C_Volume vol1(C_a1, C_b1, "VOL1");
 C_Volume vol2(C_a1, C_b1, "VOL2");
+
+ClDebounce redLED(4, LED_BUILTIN_RX, 0);
+ClDebounce greenLED(5, LED_BUILTIN_TX, 1);
 
 
 void setup() {
@@ -144,6 +147,8 @@ void setup() {
   pinMode(D8, OUTPUT);
   pinMode(D9, OUTPUT);
   pinMode(D10, OUTPUT);
+  pinMode(4, INPUT_PULLUP);
+  pinMode(5, INPUT_PULLUP);
   digitalWrite(LED_BUILTIN_RX, LOW);
   digitalWrite(LED_BUILTIN_RX, HIGH);
   setupadc();
@@ -242,6 +247,9 @@ void loop()
     digitalWrite(D10, LOW);
   }
   digitalWrite(LED_BUILTIN_RX, LOW);
+  greenLED.myFunction(2000);
+  redLED.myFunction(1000);
+
 }
 
 
@@ -402,4 +410,6 @@ int32_t run_filter_loop(int32_t input) {
   zzb[1] = zzb[2];
   return((ynb + (QQ_ONE >> 2)) >>  QQcoeff_sh );
 }
+
+
 
