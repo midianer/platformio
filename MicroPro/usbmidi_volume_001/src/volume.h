@@ -14,6 +14,9 @@ class C_Volume {
     int32_t yn=0, ynb=0;
     int32_t zz[3];
     int32_t zzb[3];
+    float _sum_a = 0.0f;
+    float _sum_b = 0.0f;
+
   public:
     //float a1;
     //float b1;

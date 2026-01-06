@@ -44,18 +44,18 @@ void C_Volume::get_coeff1(float a1, float b1, float l, int32_t ak[3], int32_t bk
 }
 
 float C_Volume::set_ampl(int32_t ak[3], int32_t bk[3]) {
-  float a0 = 0.0f;
-  float b0 = 0.0f;
+  //float _sum_a = 0.0f;
+  //float _sum_b = 0.0f;
   for(int i=0; i<3; i++) {
-    a0 += ak[i];
-    b0 += bk[i];
+    _sum_a += ak[i];
+    _sum_b += bk[i];
     Serial.println(ak[i]);
     Serial.println(bk[i]);
   }
   Serial.println("C_Volume: +++set_ampl+++");
-  Serial.println(a0);
-  Serial.println(b0);
-  return(a0 / b0);
+  Serial.println(_sum_a);
+  Serial.println(_sum_b);
+  return(_sum_a / _sum_b);
 }
 
 int32_t C_Volume::run_filter_one(int32_t input) {
@@ -85,9 +85,11 @@ int32_t C_Volume::run_filter_loop(int32_t input) {
   //static int32_t yn=0, ynb=0;
   //static int32_t zz[3];
   //static int32_t zzb[3];
-  Serial.println("input");
-  Serial.println(_id);
-  Serial.println(input);
+  #ifdef DEBUG_LOOP 
+    Serial.print("input ");
+    Serial.println(_id);
+    Serial.println(input);
+  #endif
   yn = ak1[0] * input + (zz[0] >> QQcoeff_sh);
   zz[1] = zz[2] - (bk1[1] *  yn);
   zz[2] = - (bk1[2] *  yn);

@@ -25,19 +25,25 @@
 #define D9 9
 #define D10 10
 
+//#define DEBUG_LOOP
+
+
 const int QQcoeff_sh = 12;
 #define QQ_ONE (1<<QQcoeff_sh)
 
 const float C_a1 = 1.3397;
 const float C_b1 = 0.4889;
 
-
 LiquidCrystal_I2C  lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);
 //LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 unsigned long previousMillis = 0;  // will store last time LED was updated
 unsigned long currentMillis;
-const long interval = 200;  // interval at which to blink (milliseconds)
+#ifdef DEBUG_LOOP
+  const long interval = 200;
+#else
+  const long interval = 2;
+#endif  
 volatile uint16_t adc_value[3];
 
 int adc_mux_arr[3] =
@@ -173,9 +179,9 @@ void setup() {
 
 void loop()
 { 
-  static uint16_t adc_val_old[3];
-  static uint16_t adc_sh[3];
-  static uint16_t adc_filt[3];
+  static int16_t adc_val_old[3];
+  static int16_t adc_sh[3];
+  static int16_t adc_filt[3];
   
   digitalWrite(LED_BUILTIN_RX, HIGH);
 //  xk = (a * 16 + 16 * 15 * xk) >> 8;
@@ -193,10 +199,12 @@ void loop()
     adc_sh[0] = adc_value[0] >> 3;
     adc_sh[1] = adc_value[1] >> 3;
     adc_sh[2] = adc_value[2] >> 3;
-    Serial.println("adc_sh");
-    Serial.println(adc_sh[0]);
-    Serial.println(adc_sh[1]);
-    Serial.println(adc_sh[2]);
+    #ifdef DEBUG_LOOP 
+      Serial.println("adc_sh");
+      Serial.println(adc_sh[0]);
+      Serial.println(adc_sh[1]);
+      Serial.println(adc_sh[2]);
+    #endif
     isr_cnt = 2;
     ADMUX = adc_mux_arr[isr_cnt];
     ADCSRA |= (1 <<ADSC); // Optional: Neue Konvertierung starten
@@ -204,13 +212,15 @@ void loop()
     //adc_filt = run_test_filter_loop(a);
     adc_filt[0] = vol1.run_filter_loop(adc_sh[0]);
     adc_filt[1] = vol2.run_filter_loop(adc_sh[1]);
+    #ifdef DEBUG_LOOP 
     Serial.println("adc_filt");
     Serial.println(adc_filt[0]);
     Serial.println(adc_filt[1]);
     Serial.println(adc_filt[2]);
+    #endif
     if (adc_filt[0] != adc_val_old[0]) {
       digitalWrite(D8, HIGH);
-      controlChange(0, 0x7, adc_filt[0]);
+      controlChange(0, 0x7, max(adc_filt[0],0));
       digitalWrite(D8, LOW);
       adc_val_old[0]=adc_filt[0];
       //Serial.println(adc_value);
@@ -218,7 +228,7 @@ void loop()
     }
     if (adc_filt[1] != adc_val_old[1]) {
       digitalWrite(D8, HIGH);
-      controlChange(1, 0x7, adc_filt[1]);
+      controlChange(1, 0x7, max(adc_filt[1],0));
       digitalWrite(D8, LOW);
       adc_val_old[1]=adc_filt[1];
       //Serial.println(adc_value);
