@@ -12,10 +12,10 @@ using namespace std;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define noOfButtons 2     //Exactly what it says; must be the same as the number of elements in buttonPins
-#define bounceDelay 50    //Minimum delay before regarding a button as being pressed and debounced
+#define bounceDelay 100    //Minimum delay before regarding a button as being pressed and debounced
 #define minButtonPress 1  //Number of times the button has to be detected as pressed before the press is considered to be valid
 
-#define DebugSerial 2
+#define DebugSerial 0
 
 void doStuff(uint8_t buttonNumber);
 void debounce();
@@ -43,7 +43,7 @@ class ClDebounce {       // The class
     uint8_t _button;
 };
 ClDebounce::ClDebounce(int pin, int ledno, int button) {
-	pinMode(pin, INPUT);
+	pinMode(pin, INPUT_PULLUP);
 	_pin = pin;
 	_ledno = ledno;
     _button = button;
@@ -51,14 +51,21 @@ ClDebounce::ClDebounce(int pin, int ledno, int button) {
 void ClDebounce::myFunction(int blinkRate){
     _currentMillis = millis();
     digitalWrite(_ledno, digitalRead(_pin));
+    //Serial.println("Loop");
+    //Serial.println(_pin);
     if (digitalRead(_pin)==LOW) {             //Input is high, button not pressed or in the middle of bouncing and happens to be high
         _previousMillis = _currentMillis;        //Set previousMillis to millis to reset timeout
         _pressCount = 0;                        //Set the number of times the button has been detected as pressed to 0
     } else {
       if ((_currentMillis - _previousMillis) > bounceDelay) {
+        #if (DebugSerial > 4)
+          Serial.println(_previousMillis);
+          Serial.println(_currentMillis);
+        #endif
         _previousMillis = _currentMillis;        //Set previousMillis to millis to reset timeout
         if (_pressCount < 10) {
             ++_pressCount;
+            //Serial.println(_pressCount);
         }
         if (_pressCount == minButtonPress) {
           doStuff(_button);                             //Button has been debounced. Call function to do whatever you want done.
@@ -135,6 +142,7 @@ void setup() {
   //  loop();
 }
 
+// void loop() {
 void loop() {
 	//loop_debounce();
 	loop_CLdebounce();
@@ -186,6 +194,16 @@ void loop4() {
   digitalWrite(LED_BUILTIN_TX, digitalRead(buttonPins[1]));
 }
 
+//void loop6() {
+void loop6() {
+  Serial.println("Loop6");
+  if(digitalRead(buttonPins[0]) == 1) {
+    Serial.println("Pressed 0x13");
+  }
+  if(digitalRead(buttonPins[1]) == 1) {
+    Serial.println("Pressed 0x12");
+  }
+}
 
 void controlChange(byte channel, byte control, byte value) {
 
@@ -425,4 +443,40 @@ void noteOff(byte channel, byte pitch, byte velocity) {
 
 
 
-
+//
+///*
+//This program turns on and off a LED on pin 13 each 1 second using an internal timer
+//*/
+//
+//int timer=0;
+//bool state=0;
+//void setup() {
+//  pinMode(13,OUTPUT);
+//    
+//  TCCR0A=(1<<WGM01);    //Set the CTC mode   
+//  OCR0A=0xF9; //Value for ORC0A for 1ms
+// 
+//  TIMSK0|=(1<<OCIE0A);   //Set the interrupt request
+//  sei(); //Enable interrupt
+// 
+//  TCCR0B|=(1<<CS01);    //Set the prescale 1/64 clock
+//  TCCR0B|=(1<<CS00);
+//
+//}
+//
+//void loop() {
+//  //in this way you can count 1 second because the nterrupt request is each 1ms
+//  if(timer>=1000){
+//    state=!state;
+//    timer=0;
+//  }
+// 
+//  digitalWrite(13,state);
+// 
+//}
+//
+//ISR(TIMER0_COMPA_vect){    //This is the interrupt request
+//  timer++;
+//}
+//
+// 
