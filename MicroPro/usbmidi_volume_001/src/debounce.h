@@ -3,10 +3,8 @@
 #ifndef __debounce_h
 #define __debounce_h
 
-#define DebugSerial 1
-
 #define noOfButtons 2     //Exactly what it says; must be the same as the number of elements in buttonPins
-#define bounceDelay 50    //Minimum delay before regarding a button as being pressed and debounced
+#define bounceDelay 100    //Minimum delay before regarding a button as being pressed and debounced
 #define minButtonPress 1  //Number of times the button has to be detected as pressed before the press is considered to be valid
 
 void doStuff(uint8_t buttonNumber);

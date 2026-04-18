@@ -9,6 +9,7 @@ class C_Volume {
   private:
     float _a1;
     float _b1;
+    float _potirange;
     String _id;
     int32_t ak1[3];
     int32_t bk1[3];
@@ -23,7 +24,7 @@ class C_Volume {
   public:
     //float a1;
     //float b1;
-    C_Volume(float a1, float b1, String id);
+    C_Volume(float a1, float b1, float potirange, String id);
     void setup_filter();
     void get_coeff1(float a1, float b1, float l, int32_t ak[3], int32_t bk[3]);
     float set_ampl(int32_t ak[3], int32_t bk[3]);

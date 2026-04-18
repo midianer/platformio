@@ -1,12 +1,14 @@
 #include <Arduino.h>
+#include "main.h"
 #include "volume.h"
 
 const int QQcoeff_sh = 12;
 #define QQ_ONE (1<<QQcoeff_sh)
 
-C_Volume::C_Volume(float a1, float b1, String id):
+C_Volume::C_Volume(float a1, float b1, float potirange, String id):
   _a1(a1),
   _b1(b1),
+  _potirange(potirange),
   _id(id)
 {}
 
@@ -33,11 +35,16 @@ void C_Volume::get_coeff1(float a1, float b1, float l, int32_t ak[3], int32_t bk
   bk[0] = QQ_ONE;
   bk[1] = QQ_ONE * (2 * (1 - b1 * l * l) / (1 + a1 * l + b1 * l * l));
   bk[2] = QQ_ONE * ((1 - a1 * l + b1 * l * l) / (1 + a1 * l + b1 * l * l));
-  Serial.println("C_Volume: ak[x]");
-  Serial.println(ak[0]);
+  #if (DebugSerial > 3)
+    Serial.println("C_Volume: ak[x]");
+    Serial.println(ak[0]);
+  #endif
   ak[0] *= 1.0/set_ampl(ak, bk);
-  Serial.println("C_Volume: ak[x]");
-  Serial.println(ak[0]);
+  ak[0] *= _potirange;
+  #if (DebugSerial > 3)
+    Serial.println("C_Volume: ak[x]");
+    Serial.println(ak[0]);
+  #endif
 //  cc[0]=1234;
 //  cc[5]=5678;
   return;
@@ -49,34 +56,42 @@ float C_Volume::set_ampl(int32_t ak[3], int32_t bk[3]) {
   for(int i=0; i<3; i++) {
     _sum_a += ak[i];
     _sum_b += bk[i];
-    Serial.println(ak[i]);
-    Serial.println(bk[i]);
+    #if (DebugSerial > 3)
+      Serial.println(ak[i]);
+      Serial.println(bk[i]);
+    #endif
   }
-  Serial.println("C_Volume: +++set_ampl+++");
-  Serial.println(_sum_a);
-  Serial.println(_sum_b);
+  #if (DebugSerial > 3)
+    Serial.println("C_Volume: +++set_ampl+++");
+    Serial.println(_sum_a);
+    Serial.println(_sum_b);
+  #endif
   return(_sum_a / _sum_b);
 }
 
 int32_t C_Volume::run_filter_one(int32_t input) {
   static int32_t yn=0;
   static int32_t zz[3];
-  Serial.println("----run_filter_one------");
-  Serial.println(ak1[0]);
-  Serial.println(bk1[0]);
-  Serial.println(bk1[1]);
-  Serial.println(bk1[2]);
+  #if (DebugSerial > 3)
+    Serial.println("----run_filter_one------");
+    Serial.println(ak1[0]);
+    Serial.println(bk1[0]);
+    Serial.println(bk1[1]);
+    Serial.println(bk1[2]);
+  #endif
   for(int i=0; i<100; i++) {
     yn = ak1[0] * input + (zz[0] >> QQcoeff_sh);
     zz[1] = zz[2] - (bk1[1] *  yn);
     zz[2] = - (bk1[2] *  yn);
     zz[0] = zz[1];
     zz[1] = zz[2];
-    Serial.println("++++++++");
-    Serial.println(yn);
-    Serial.println(zz[0]);
-    Serial.println(zz[1]);
-    Serial.println(yn >> QQcoeff_sh);
+    #if (DebugSerial > 3)
+      Serial.println("++++++++");
+      Serial.println(yn);
+      Serial.println(zz[0]);
+      Serial.println(zz[1]);
+      Serial.println(yn >> QQcoeff_sh);
+    #endif
   }
   return(yn);
 }

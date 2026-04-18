@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <MIDIUSB.h>
+#include "main.h"
 #include "volume.h"
 #include "debounce.h"
 
@@ -26,14 +27,14 @@
 #define D9 9
 #define D10 10
 
-//#define DEBUG_LOOP
-
 
 const int QQcoeff_sh = 12;
 #define QQ_ONE (1<<QQcoeff_sh)
 
 const float C_a1 = 1.3397;
 const float C_b1 = 0.4889;
+const float C_potirange1 = 1.00;
+const float C_potirange2 = 1.00;
 
 LiquidCrystal_I2C  lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);
 //LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -106,8 +107,8 @@ int32_t bk2[3];
 int32_t cc[3];
 volatile uint16_t isr_cnt;
 
-C_Volume vol1(C_a1, C_b1, "VOL1");
-C_Volume vol2(C_a1, C_b1, "VOL2");
+C_Volume vol1(C_a1, C_b1, C_potirange1, "VOL1");
+C_Volume vol2(C_a1, C_b1, C_potirange2, "VOL2");
 
 ClDebounce redLED(4, LED_BUILTIN_RX, 0);
 ClDebounce greenLED(5, LED_BUILTIN_TX, 1);
@@ -153,11 +154,13 @@ void setup() {
   digitalWrite(LED_BUILTIN_RX, HIGH);
   setupadc();
   setup_filter();
-  Serial.println("ak, bk, set_ampl");
-  for(int i=0; i<3; i++)
-    Serial.println(ak1[i]);
-  for(int i=0; i<3; i++)
-    Serial.println(bk1[i]);
+  #if (DebugSerial > 1)
+    Serial.println("ak, bk, set_ampl");
+    for(int i=0; i<3; i++)
+      Serial.println(ak1[i]);
+    for(int i=0; i<3; i++)
+      Serial.println(bk1[i]);
+  #endif
   //Serial.println(set_ampl(ak1, bk1));
   //run_test_filter_one();
   run_filter_one(100);
@@ -166,8 +169,10 @@ void setup() {
   vol2.setup_filter();
   vol1.run_filter_one(50);
   get_adc(0);
-  Serial.println("****get_adc****");
-  Serial.println(get_adc(0) >> 3);
+  #if (DebugSerial > 1)
+    Serial.println("****get_adc****");
+    Serial.println(get_adc(0) >> 3);
+  #endif
   //vol1.set_adc_cb(get_adc);
   //Serial.println("****get_adc****");
   //Serial.println(vol1.get_adc() >> 3);
@@ -223,17 +228,21 @@ void loop()
     Serial.println(adc_filt[1]);
     Serial.println(adc_filt[2]);
     #endif
+    adc_filt[0] = max(adc_filt[0], 0);
+    adc_filt[0] = min(adc_filt[0], 0x7f);
     if (adc_filt[0] != adc_val_old[0]) {
       digitalWrite(D8, HIGH);
-      controlChange(0, 0x7, max(adc_filt[0],0));
+      controlChange(0, 0x7, adc_filt[0]);
       digitalWrite(D8, LOW);
       adc_val_old[0]=adc_filt[0];
       //Serial.println(adc_value);
       //Serial.println(adc_filt);
     }
+    adc_filt[1] = max(adc_filt[1], 0);
+    adc_filt[1] = min(adc_filt[1], 0x7f);
     if (adc_filt[1] != adc_val_old[1]) {
       digitalWrite(D8, HIGH);
-      controlChange(1, 0x7, max(adc_filt[1],0));
+      controlChange(1, 0x7, adc_filt[1]);
       digitalWrite(D8, LOW);
       adc_val_old[1]=adc_filt[1];
       //Serial.println(adc_value);
@@ -324,15 +333,19 @@ void setup_filter() {
   get_coeff1(a2, b2, l, ak2, bk2, cc);
   //get_coeff(a1, b1, l, &ak1[0], &bk1[1], &bk1[2], cc);
   //get_coeff(a2, b2, l, ak2, bk2, cc);
-  Serial.println(cc[0]);
+  #if (DebugSerial > 3)
+    Serial.println(cc[0]);
+  #endif
 }
 
 void get_coeff(float a1, float b1, float l, int32_t *al0, int32_t *be0, int32_t *be1, int32_t cc[]) {
   *al0 = QQ_ONE * (1 / (1 + a1 * l + b1 * l * l));
   *be0 = QQ_ONE * (2 * (1 - b1 * l * l) / (1 + a1 * l + b1 * l * l));
   *be1 = QQ_ONE * ((1 - a1 * l + b1 * l * l) / (1 + a1 * l + b1 * l * l));
-  Serial.println("*al0");
-  Serial.println(*al0);
+  #if (DebugSerial > 3)
+    Serial.println("*al0");
+    Serial.println(*al0);
+  #endif
   //*al0 *= 1.0/set_ampl(ak, bk);
   cc[0]=1234;
   cc[5]=5678;
@@ -346,15 +359,21 @@ void get_coeff1(float a1, float b1, float l, int32_t ak[3], int32_t bk[3], int32
   bk[0] = QQ_ONE;
   bk[1] = QQ_ONE * (2 * (1 - b1 * l * l) / (1 + a1 * l + b1 * l * l));
   bk[2] = QQ_ONE * ((1 - a1 * l + b1 * l * l) / (1 + a1 * l + b1 * l * l));
-  Serial.println("ak[x]");
-  Serial.println(ak[0]);
+  #if (DebugSerial > 3)
+    Serial.println("ak[x]");
+    Serial.println(ak[0]);
+  #endif
   ak[0] *= 1.0/set_ampl(ak, bk);
-  Serial.println("ak[x]");
-  Serial.println(ak[0]);
+  #if (DebugSerial > 3)
+    Serial.println("ak[x]");
+    Serial.println(ak[0]);
+  #endif
   cc[0]=1234;
   cc[5]=5678;
   return;
 }
+
+
 
 float set_ampl(int32_t ak[3], int32_t bk[3]) {
   float a0 = 0.0f;
@@ -362,34 +381,42 @@ float set_ampl(int32_t ak[3], int32_t bk[3]) {
   for(int i=0; i<3; i++) {
     a0 += ak[i];
     b0 += bk[i];
-    Serial.println(ak[i]);
-    Serial.println(bk[i]);
+    #if (DebugSerial > 3)
+      Serial.println(ak[i]);
+      Serial.println(bk[i]);
+    #endif
   }
-  Serial.println("+++set_ampl+++");
-  Serial.println(a0);
-  Serial.println(b0);
+  #if (DebugSerial > 3)
+    Serial.println("+++set_ampl+++");
+    Serial.println(a0);
+    Serial.println(b0);
+  #endif
   return(a0 / b0);
 }
 
 int32_t run_filter_one(int32_t input) {
   static int32_t yn=0;
   static int32_t zz[3];
-  Serial.println("----run_filter_one------");
-  Serial.println(ak1[0]);
-  Serial.println(bk1[0]);
-  Serial.println(bk1[1]);
-  Serial.println(bk1[2]);
+  #if (DebugSerial > 2)
+    Serial.println("----run_filter_one------");
+    Serial.println(ak1[0]);
+    Serial.println(bk1[0]);
+    Serial.println(bk1[1]);
+    Serial.println(bk1[2]);
+  #endif
   for(int i=0; i<100; i++) {
     yn = ak1[0] * input + (zz[0] >> QQcoeff_sh);
     zz[1] = zz[2] - (bk1[1] *  yn);
     zz[2] = - (bk1[2] *  yn);
     zz[0] = zz[1];
     zz[1] = zz[2];
-    Serial.println("++++++++");
-    Serial.println(yn);
-    Serial.println(zz[0]);
-    Serial.println(zz[1]);
-    Serial.println(yn >> QQcoeff_sh);
+    #if (DebugSerial > 2)
+      Serial.println("++++++++");
+      Serial.println(yn);
+      Serial.println(zz[0]);
+      Serial.println(zz[1]);
+      Serial.println(yn >> QQcoeff_sh);
+    #endif
   }
   return(yn);
 }
