@@ -1,6 +1,8 @@
 #include <WiFi.h>
 #include "time.h"
 #include "esp_sntp.h"
+#include <ESPAsyncWebServer.h>
+#include "index.h" //Our HTML webpage contents with javascripts
 
 const char* ssid       = "UPC39253B3";
 const char* password   = "TT6cukds4mfj";
@@ -13,8 +15,20 @@ const int   daylightOffset_sec = 3600;
 IPAddress local_IP(192, 168, 0, 228);   
 IPAddress subnet(255, 255, 255, 0);
 IPAddress gateway(192, 168, 0, 1);
+IPAddress dns1(8,8,8,8);
+IPAddress dns2(8,8,4,4);
 
 const char* time_zone = "CET-1CEST,M3.5.0,M10.5.0/3";  // TimeZone rule for Europe/Rome including daylight adjustment rules (optional)
+
+AsyncWebServer server(80);
+
+//===============================================================
+// This routine is executed when you open its IP in browser
+//===============================================================
+void handleRoot(AsyncWebServerRequest *request) {
+ String s = MAIN_page; //Read HTML contents
+ request->send(200, "text/html", s); //Send web page
+}
 
 void printLocalTime()
 {
@@ -40,7 +54,7 @@ void setup()
   Serial.println("S2 NTP");
   //connect to WiFi
   Serial.printf("Connecting to %s ", ssid);
-  WiFi.config(local_IP, subnet, gateway);
+  WiFi.config(local_IP, gateway, subnet, dns1, dns2);
   //WiFi.setHostname("S2MINI NTP");
   WiFi.begin(ssid, password);
   esp_sntp_servermode_dhcp(1);  // (optional)
@@ -88,11 +102,11 @@ void setup()
   Serial.print("Connected to ");
   Serial.println(ssid);
   Serial.print("IP address: ");
-  //Serial.println(WiFi.localIP());  //IP address assigned to your ESP
+  Serial.println(WiFi.localIP());  //IP address assigned to your ESP
 
-  //server.on("/", HTTP_GET, handleRoot);      //Which routine to handle at root location. This is display page
+  server.on("/", HTTP_GET, handleRoot);      //Which routine to handle at root location. This is display page
 
-  //server.begin();                  //Start server
+  server.begin();                  //Start server
   Serial.println("HTTP server started");
 
 }
