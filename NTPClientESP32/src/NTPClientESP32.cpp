@@ -26,8 +26,21 @@ AsyncWebServer server(80);
 // This routine is executed when you open its IP in browser
 //===============================================================
 void handleRoot(AsyncWebServerRequest *request) {
- String s = MAIN_page; //Read HTML contents
- request->send(200, "text/html", s); //Send web page
+  String s = MAIN_page; //Read HTML contents
+  request->send(200, "text/html", s); //Send web page
+}
+
+void handleDate(AsyncWebServerRequest *request) {
+  int sec;
+  String _sec_val;
+
+  struct tm timeinfo;
+  if(getLocalTime(&timeinfo)){
+    sec = timeinfo.tm_sec;
+  } else
+    return;
+  _sec_val = String(sec);
+  request->send(200, "text/plane", _sec_val);
 }
 
 void printLocalTime()
@@ -105,6 +118,7 @@ void setup()
   Serial.println(WiFi.localIP());  //IP address assigned to your ESP
 
   server.on("/", HTTP_GET, handleRoot);      //Which routine to handle at root location. This is display page
+  server.on("/GetDate", handleDate);
 
   server.begin();                  //Start server
   Serial.println("HTTP server started");
@@ -113,7 +127,12 @@ void setup()
 
 void loop()
 {
+  int hour;
+  struct tm timeinfo;
   delay(5000);
+  if(getLocalTime(&timeinfo)){
+    hour = timeinfo.tm_hour;
+  }
   printLocalTime();     // it will take some time to sync time :)
 }
 
