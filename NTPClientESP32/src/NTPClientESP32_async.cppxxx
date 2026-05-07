@@ -1,6 +1,9 @@
 #include <WiFi.h>
 #include "time.h"
 #include "esp_sntp.h"
+#include <ESPAsyncWebServer.h>
+//#include <ESP32TimerInterrupt.h>
+#include "index.h" //Our HTML webpage contents with javascripts
 
 const char* ssid       = "UPC39253B3";
 const char* password   = "TT6cukds4mfj";
@@ -15,6 +18,16 @@ IPAddress subnet(255, 255, 255, 0);
 IPAddress gateway(192, 168, 0, 1);
 
 const char* time_zone = "CET-1CEST,M3.5.0,M10.5.0/3";  // TimeZone rule for Europe/Rome including daylight adjustment rules (optional)
+
+AsyncWebServer server(80);
+
+//===============================================================
+// This routine is executed when you open its IP in browser
+//===============================================================
+void handleRoot(AsyncWebServerRequest *request) {
+ String s = MAIN_page; //Read HTML contents
+ request->send(200, "text/html", s); //Send web page
+}
 
 void printLocalTime()
 {
@@ -33,22 +46,14 @@ void timeavailable(struct timeval *t)
   printLocalTime();
 }
 
+//==============================================================
+//                  SETUP
+//==============================================================
 void setup()
 {
-  Serial.begin(115200);
   delay(5000);
-  Serial.println("S2 NTP");
-  //connect to WiFi
-  Serial.printf("Connecting to %s ", ssid);
-  WiFi.config(local_IP, subnet, gateway);
-  //WiFi.setHostname("S2MINI NTP");
-  WiFi.begin(ssid, password);
-  esp_sntp_servermode_dhcp(1);  // (optional)
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
+
 
 
   // set notification call-back function
@@ -62,7 +67,7 @@ void setup()
    * NOTE: configTime() function call if made AFTER DHCP-client run
    * will OVERRIDE aquired NTP server address
    */
-  sntp_servermode_dhcp(1);    // (optional)
+//  sntp_servermode_dhcp(1);    // (optional)
   //ip_addr_t remote_ip = IPADDR4_INIT_BYTES(192, 168, 0, 228);
   ////ip_addr_t remote_ipx = IP4_ADDR(&ipaddr, 192,168,0,228);
   //sntp_setserver(0, &remote_ip);
@@ -80,19 +85,30 @@ void setup()
    */
   //configTzTime(time_zone, ntpServer1, ntpServer2);
 
+  Serial.begin(115200);
+  Serial.println("S2 NTP");
+  //connect to WiFi
+  Serial.printf("Connecting to %s ", ssid);
+  WiFi.config(local_IP, subnet, gateway);
+  WiFi.setHostname("S2MINI NTP");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
   Serial.println(" CONNECTED");
-  //delay(15000);
+  delay(15000);
 
   //If connection successful show IP address in serial monitor
   Serial.println("");
   Serial.print("Connected to ");
   Serial.println(ssid);
   Serial.print("IP address: ");
-  //Serial.println(WiFi.localIP());  //IP address assigned to your ESP
+  Serial.println(WiFi.localIP());  //IP address assigned to your ESP
 
-  //server.on("/", HTTP_GET, handleRoot);      //Which routine to handle at root location. This is display page
+  server.on("/", HTTP_GET, handleRoot);      //Which routine to handle at root location. This is display page
 
-  //server.begin();                  //Start server
+  server.begin();                  //Start server
   Serial.println("HTTP server started");
 
 }
