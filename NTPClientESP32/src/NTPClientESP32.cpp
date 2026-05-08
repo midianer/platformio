@@ -32,16 +32,42 @@ void handleRoot(AsyncWebServerRequest *request) {
 
 void handleDate(AsyncWebServerRequest *request) {
   int sec;
-  String _sec_val;
+  int min;
+  int hour;
+  int mday;
+  int mon;
+  int year;
+  String _time_val;
+  char  _time[32];
 
   struct tm timeinfo;
   if(getLocalTime(&timeinfo)){
     sec = timeinfo.tm_sec;
+    min = timeinfo.tm_min;
+    hour = timeinfo.tm_hour;
+    mday = timeinfo.tm_mday;   /* Day of the month [1, 31] */
+    mon = timeinfo.tm_mon;    /* Month            [0, 11]  (January = 0) */
+    year = timeinfo.tm_year;   /* Year minus 1900 */
   } else
     return;
-  _sec_val = String(sec);
-  request->send(200, "text/plane", _sec_val);
+  sprintf(_time, "%04d.%02d.%02d %02d:%02d:%02d", year+1900, mon+1, mday, hour, min, sec);
+  _time_val = String(_time);
+//  request->send(200, "text/plane", _sec_val);
+  request->send(200, "text/plane", _time_val);
 }
+
+
+void handleRSSI(AsyncWebServerRequest *request) {
+  int sec;
+  String _rssi_val;
+  long rssi = WiFi.RSSI();
+  _rssi_val = String(rssi);
+  request->send(200, "text/plane", _rssi_val);
+}
+
+
+
+
 
 void printLocalTime()
 {
@@ -63,8 +89,9 @@ void timeavailable(struct timeval *t)
 void setup()
 {
   Serial.begin(115200);
-  delay(5000);
+  delay(2000);
   Serial.println("S2 NTP");
+  delay(2000);
   //connect to WiFi
   Serial.printf("Connecting to %s ", ssid);
   WiFi.config(local_IP, gateway, subnet, dns1, dns2);
@@ -116,9 +143,13 @@ void setup()
   Serial.println(ssid);
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());  //IP address assigned to your ESP
-
+  long rssi = WiFi.RSSI();
+  Serial.print("RSSI:");
+  Serial.println(rssi);
+  
   server.on("/", HTTP_GET, handleRoot);      //Which routine to handle at root location. This is display page
   server.on("/GetDate", handleDate);
+  server.on("/GetRSSI", handleRSSI);
 
   server.begin();                  //Start server
   Serial.println("HTTP server started");
