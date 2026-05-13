@@ -88,6 +88,7 @@ void handleUp(AsyncWebServerRequest *request) {
 //==============================================================
 void setup(void){
   Serial.begin(115200);
+  delay(5000);
   Serial.println("EspE8266_001_Ajax");
   
   // Connect to Wi-Fi
