@@ -1,22 +1,74 @@
-#include<ESP8266WiFi.h>
-#include <time.h> // Built-in library
+#include <ESP8266WiFi.h>
+#include "time.h" // Built-in library
+#include <ESPAsyncWebServer.h>
+#include "index.h" //Our HTML webpage contents with javascripts
 
 //#define myTZ "PKT-5"
 //#define dst 0
 
-const char * SSID = "UPC39253B3"; 
-const char * Password = "TT6cukds4mfj"; 
+const char* ssid       = "UPC39253B3";
+const char* password   = "TT6cukds4mfj";
+
+const char* ntpServer1 = "pool.ntp.org";
+const char* ntpServer2 = "time.nist.gov";
+const long  gmtOffset_sec = 3600;
+const int   daylightOffset_sec = 3600;
+
 IPAddress local_IP(192, 168, 0, 228);   
 IPAddress subnet(255, 255, 255, 0);
 IPAddress gateway(192, 168, 0, 1);
 IPAddress dns1(8,8,8,8);
 IPAddress dns2(8,8,4,4);
 
+AsyncWebServer server(80);
+
+//===============================================================
+// This routine is executed when you open its IP in browser
+//===============================================================
+void handleRoot(AsyncWebServerRequest *request) {
+  String s = MAIN_page; //Read HTML contents
+  request->send(200, "text/html", s); //Send web page
+}
+
+void handleDate(AsyncWebServerRequest *request) {
+  int sec;
+  int min;
+  int hour;
+  int mday;
+  int mon;
+  int year;
+  String _time_val;
+  char  _time[36];
+
+  struct tm timeinfo;
+  if(getLocalTime(&timeinfo)){
+    sec = timeinfo.tm_sec;
+    min = timeinfo.tm_min;
+    hour = timeinfo.tm_hour;
+    mday = timeinfo.tm_mday;   /* Day of the month [1, 31] */
+    mon = timeinfo.tm_mon;    /* Month            [0, 11]  (January = 0) */
+    year = timeinfo.tm_year;   /* Year minus 1900 */
+  } else
+    return;
+  sprintf(_time, "%04d.%02d.%02d %02d:%02d:%02d", year+1900, mon+1, mday, hour, min, sec);
+  _time_val = String(_time);
+//  request->send(200, "text/plane", _sec_val);
+  request->send(200, "text/plane", _time_val);
+}
+
+
+void handleRSSI(AsyncWebServerRequest *request) {
+  String _rssi_val;
+  long rssi = WiFi.RSSI();
+  _rssi_val = String(rssi);
+  request->send(200, "text/plane", _rssi_val);
+}
+
 void connectToWiFi()
 {
-  //WiFi.config(local_IP, gateway, subnet);
+  WiFi.setHostname("EspE8266_TimeNTP_WiFi");
   WiFi.config(local_IP, gateway, subnet, dns1, dns2);
-  WiFi.begin(SSID, Password); 
+  WiFi.begin(ssid, password); 
   while(WiFi.status() != WL_CONNECTED)
   {
     Serial.print(".");
@@ -34,24 +86,60 @@ void connectToWiFi()
 //    return 60000 * 60; // 1 hour
 //}
 
+void printLocalTime()
+{
+  struct tm timeinfo;
+  if(!getLocalTime(&timeinfo)){
+    Serial.println("No time available (yet)");
+    return;
+  }
+  //Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+}
+
+// Callback function (get's called when time adjusts via NTP)
+void timeavailable(struct timeval *t)
+{
+  //Serial.println("Got time adjustment from NTP!");
+  printLocalTime();
+}
 
 void setup()
 {
-  delay(5000);
+  delay(1000);
   Serial.begin(115200);
   Serial.println ("EspE8266_TimeNTP_WiFi");
-  connectToWiFi(); 
-  configTime(5*3600,0,"pool.ntp.org");
+  connectToWiFi();
+  //configTime(5*3600,0,"pool.ntp.org");
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer1, ntpServer2);
+
   //configTime(myTZ,"pool.ntp.org"); some how this doesnt work for me, i have no clue why
 
- 
+  //sntp_set_time_sync_notification_cb( timeavailable ); 
+
   while (time(nullptr) < 1617460172) // minimum valid epoch
   {
     Serial.println("I Am Time");
     Serial.println(time(nullptr));
     delay(100);
   }
+
+  //If connection successful show IP address in serial monitor
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());  //IP address assigned to your ESP
+  long rssi = WiFi.RSSI();
+  Serial.print("RSSI:");
+  Serial.println(rssi);
   
+  server.on("/", HTTP_GET, handleRoot);      //Which routine to handle at root location. This is display page
+  server.on("/GetDate", handleDate);
+  server.on("/GetRSSI", handleRSSI);
+
+  server.begin();                  //Start server
+  Serial.println("HTTP server started");
+
 }
 
 
@@ -59,16 +147,23 @@ time_t rawtime;
 
 void loop()
 {
+  int sec, hour;
  
-  struct tm* timeinfo;  
+  struct tm* p_timeinfo;  
+  struct tm  timeinfo;  
   time(&rawtime);
 
-  //getLocalTime
-  timeinfo = localtime(&rawtime); 
+  p_timeinfo = localtime(&rawtime); 
   char buffer[80];
 
-  strftime(buffer, 80, "%Y%m%d %r",timeinfo); 
+  strftime(buffer, 80, "%Y%m%d %r",p_timeinfo); 
  
+  getLocalTime(&timeinfo);
+  hour = timeinfo.tm_hour;
+  sec = timeinfo.tm_sec;
+  Serial.println(hour);
+  Serial.println(sec);
+
 
   Serial.println(buffer);
   delay (1000); 
