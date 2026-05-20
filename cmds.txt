@@ -30,7 +30,8 @@ guenter@guenter-B550M-DS3H:/media/hdd3/Piezolution/Platformio$ git branch
 * master
 guenter@guenter-B550M-DS3H:/media/hdd3/Piezolution/Platformio$ 
 
-
+git checkout HEAD~1
+git checkout -B master
 
 git clone git@github.com:midianer/impuls7.git --branch project/wsp1.10.1_impuls7_fkm
 git pull origin project/wsp1.10.1_impuls7_fkm
